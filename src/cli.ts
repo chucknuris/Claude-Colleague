@@ -31,6 +31,7 @@ export function run(argv: string[]) {
     .option('--invoice', 'Generate PDF invoice')
     .option('--compare', 'Detailed role comparison')
     .option('--standup', 'Generate daily standup report')
+    .option('--review', 'Generate performance review')
     .option('--hook-mode', 'Compact output for session hook (internal)')
     .action(async (opts) => {
       try {
@@ -81,6 +82,7 @@ interface CliOptions {
   invoice?: boolean;
   compare?: boolean;
   standup?: boolean;
+  review?: boolean;
   hookMode?: boolean;
 }
 
@@ -104,6 +106,12 @@ async function runMain(opts: CliOptions): Promise<void> {
   // --standup: daily standup report
   if (opts.standup) {
     await runStandup();
+    return;
+  }
+
+  // --review: performance review
+  if (opts.review) {
+    await runReview(dateFilter, dateRange);
     return;
   }
 
@@ -239,6 +247,51 @@ async function runStandup(): Promise<void> {
   console.log(chalk.dim('--- Copiable Markdown below ---'));
   console.log('');
   console.log(generateStandupMarkdown(standupData, sections, mood));
+}
+
+async function runReview(
+  dateFilter: DateFilter,
+  dateRange: import('./types.js').DateRange,
+): Promise<void> {
+  const spinner = ora('Preparing performance review...').start();
+
+  const [statsResult, sessionsResult] = await Promise.all([
+    parseStatsCache(dateRange),
+    parseAllSessionIndexes(dateRange),
+  ]);
+
+  if (!statsResult.data) {
+    spinner.fail('Failed to read Claude Code data');
+    for (const err of statsResult.errors) {
+      console.error(chalk.red(`  ${err.error}`));
+    }
+    process.exit(1);
+  }
+
+  const stats = statsResult.data;
+  const sessions = sessionsResult.data ?? [];
+
+  spinner.text = 'Analyzing sessions...';
+  const sessionPaths = sessions
+    .filter(s => s.fullPath)
+    .map(s => s.fullPath);
+  const toolEvents = await parseAllTranscripts(sessionPaths, dateRange, dateFilter !== 'all');
+
+  const report = calculateSalary(stats, sessions, toolEvents, dateFilter);
+  const title = getRandomTitle(toolEvents);
+  report.employee.title = title;
+
+  spinner.text = 'Generating performance review...';
+  const { generateReview, generateReviewTerminal } = await import('./generators/review.js');
+
+  const review = await generateReview(report, toolEvents, (msg) => {
+    spinner.text = msg;
+  });
+
+  spinner.stop();
+
+  const output = generateReviewTerminal(review);
+  console.log(output);
 }
 
 async function runHookMode(

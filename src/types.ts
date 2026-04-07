@@ -188,3 +188,37 @@ export interface StandupSections {
   blockers: string;
   watercooler: string;
 }
+
+// Performance review types
+export type ReviewRating = 1 | 2 | 3 | 4 | 5;
+
+export interface ReviewCategory {
+  name: string;
+  rating: ReviewRating;
+  ratingLabel: string;
+  comment: string;
+}
+
+export interface ReviewData {
+  overallRating: ReviewRating;
+  overallRatingLabel: string;
+  categories: ReviewCategory[];
+  periodLabel: string;
+  employeeName: string;
+  employeeTitle: string;
+}
+
+export interface ReviewContent {
+  strengths: string;
+  areasForImprovement: string;
+  goalsForNextPeriod: string;
+  managerComments: string;
+  selfAssessment: string;
+  generatedByClaude: boolean;
+}
+
+export interface PerformanceReview {
+  data: ReviewData;
+  content: ReviewContent;
+  report: SalaryReport;
+}
