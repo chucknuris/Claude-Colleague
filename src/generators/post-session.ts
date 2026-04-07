@@ -16,7 +16,7 @@ export function generatePostSessionReport(
   const shortId = sessionId.slice(0, 7);
 
   const header = chalk.bold.green('$$') +
-    chalk.white(' Claude Salary Slip') +
+    chalk.white(' Claude Colleague Slip') +
     chalk.dim(` | Session #${shortId}`);
 
   const stats = chalk.dim('   Worked: ') +

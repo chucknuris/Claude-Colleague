@@ -10,8 +10,8 @@ export const STATS_CACHE = join(CLAUDE_HOME, 'stats-cache.json');
 export const PROJECTS_DIR = join(CLAUDE_HOME, 'projects');
 export const SETTINGS_FILE = join(CLAUDE_HOME, 'settings.json');
 
-// claude-salary output directories
-export const OUTPUT_HOME = join(home, '.claude-salary');
+// claude-colleague output directories
+export const OUTPUT_HOME = join(home, '.claude-colleague');
 export const CARDS_DIR = join(OUTPUT_HOME, 'cards');
 export const INVOICES_DIR = join(OUTPUT_HOME, 'invoices');
 

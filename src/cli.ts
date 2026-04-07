@@ -21,7 +21,7 @@ export function run(argv: string[]) {
   const program = new Command();
 
   program
-    .name('claude-salary')
+    .name('claude-colleague')
     .description('Calculate what Claude Code would earn as a human employee')
     .version('0.1.0')
     .option('--today', 'Show today only')

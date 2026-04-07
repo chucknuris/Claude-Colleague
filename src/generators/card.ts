@@ -363,7 +363,7 @@ function buildCardMarkup(report: SalaryReport): Record<string, unknown> {
                     color: '#4a4a6a',
                     letterSpacing: '1px',
                   },
-                  children: 'claude-salary',
+                  children: 'claude-colleague',
                 },
               },
             ],

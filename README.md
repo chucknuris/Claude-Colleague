@@ -1,4 +1,4 @@
-# claude-salary
+# claude-colleague
 
 > Calculate Claude Code's salary if it were a human employee. Spoiler: you're getting a bargain. Also possibly committing labor violations.
 
@@ -7,23 +7,23 @@ An npm package that reads your local Claude Code data from `~/.claude/` and calc
 ## Install & Usage
 
 ```bash
-npm install -g claude-salary
+npm install -g claude-colleague
 # or
-npx claude-salary
+npx claude-colleague
 ```
 
 ```
-claude-salary                    # Full lifetime report
-claude-salary --today            # Today only
-claude-salary --week             # This week
-claude-salary --month            # This month
-claude-salary --card             # Generate shareable PNG card
-claude-salary --invoice          # Generate PDF invoice
-claude-salary --compare          # Detailed role comparison
-claude-salary --standup          # Daily standup report
-claude-salary --review           # Performance review
-claude-salary install            # Install auto-run hook after each session
-claude-salary uninstall          # Remove hook
+claude-colleague                    # Full lifetime report
+claude-colleague --today            # Today only
+claude-colleague --week             # This week
+claude-colleague --month            # This month
+claude-colleague --card             # Generate shareable PNG card
+claude-colleague --invoice          # Generate PDF invoice
+claude-colleague --compare          # Detailed role comparison
+claude-colleague --standup          # Daily standup report
+claude-colleague --review           # Performance review
+claude-colleague install            # Install auto-run hook after each session
+claude-colleague uninstall          # Remove hook
 ```
 
 ## Features
@@ -40,11 +40,11 @@ Colorful ASCII salary slip showing:
 
 ### Shareable PNG Salary Card
 
-Spotify Wrapped-style card (dark background, purple-to-blue gradient, monospace aesthetic) showing key stats. Generated with `satori` + `@resvg/resvg-js` (no puppeteer). Saved to `~/.claude-salary/cards/`.
+Spotify Wrapped-style card (dark background, purple-to-blue gradient, monospace aesthetic) showing key stats. Generated with `satori` + `@resvg/resvg-js` (no puppeteer). Saved to `~/.claude-colleague/cards/`.
 
 ### PDF Invoice
 
-Professional-looking invoice "from Claude Code, LLC" with line items like "Senior Development", "Code Review", and "Passive-Aggressive Comment Writing ($200/hr)". Generated with `pdfkit`. Saved to `~/.claude-salary/invoices/`.
+Professional-looking invoice "from Claude Code, LLC" with line items like "Senior Development", "Code Review", and "Passive-Aggressive Comment Writing ($200/hr)". Generated with `pdfkit`. Saved to `~/.claude-colleague/invoices/`.
 
 ### Role Comparison
 
@@ -62,7 +62,7 @@ Claude-generated standup with mood detection, yesterday/today breakdown, blocker
 
 ### Auto-Run Hook
 
-`claude-salary install` adds a SessionEnd hook that prints a compact salary summary after every Claude Code session.
+`claude-colleague install` adds a SessionEnd hook that prints a compact salary summary after every Claude Code session.
 
 ### Humor System
 
@@ -99,8 +99,8 @@ All humor content — job titles, jokes, disclaimers, standup narratives, review
 ## Development
 
 ```bash
-git clone https://github.com/chucknuris/Claude-Salary.git
-cd Claude-Salary
+git clone https://github.com/chucknuris/Claude-Colleague.git
+cd Claude-Colleague
 npm install
 npm run dev              # Run in dev mode
 npm run build            # Compile TypeScript

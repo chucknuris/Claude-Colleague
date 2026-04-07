@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { parseTranscript } from '../../src/parsers/session-transcript.js';
 
-const TMP_DIR = join(tmpdir(), 'claude-salary-test-' + Date.now());
+const TMP_DIR = join(tmpdir(), 'claude-colleague-test-' + Date.now());
 
 async function collectEvents(filePath: string) {
   const events = [];

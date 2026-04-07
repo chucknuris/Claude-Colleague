@@ -30,7 +30,7 @@ yarn-error.log*
 # Generated output
 *.tgz
 
-# Claude Salary output (local user data)
+# Claude Colleague output (local user data)
 output/
 *.png
 *.pdf

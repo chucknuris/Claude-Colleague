@@ -111,7 +111,7 @@ export function buildClaudePrompt(data: ReviewData, report: SalaryReport): strin
     employeeTitle: data.employeeTitle,
   }, null, 2);
 
-  return `You are writing a fake corporate performance review for an AI coding assistant named Claude Code, who is being treated as a human employee. This is for a satirical CLI tool called "claude-salary."
+  return `You are writing a fake corporate performance review for an AI coding assistant named Claude Code, who is being treated as a human employee. This is for a satirical CLI tool called "claude-colleague."
 
 Here is Claude's real usage data for the review period:
 ${statsJson}

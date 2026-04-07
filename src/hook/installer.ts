@@ -2,7 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import chalk from 'chalk';
 import { SETTINGS_FILE } from '../utils/paths.js';
 
-const HOOK_COMMAND = 'npx claude-salary --hook-mode';
+const HOOK_COMMAND = 'npx claude-colleague --hook-mode';
 
 export async function installHook(): Promise<void> {
   let settings: Record<string, unknown>;
@@ -36,7 +36,7 @@ export async function installHook(): Promise<void> {
   const alreadyInstalled = sessionEndHooks.some((entry) => {
     if (!Array.isArray(entry.hooks)) return false;
     return (entry.hooks as Array<Record<string, unknown>>).some(
-      (h) => typeof h.command === 'string' && (h.command as string).includes('claude-salary'),
+      (h) => typeof h.command === 'string' && (h.command as string).includes('claude-colleague'),
     );
   });
 
@@ -57,7 +57,7 @@ export async function installHook(): Promise<void> {
   });
 
   await writeFile(SETTINGS_FILE, JSON.stringify(settings, null, 2) + '\n', 'utf-8');
-  console.log(chalk.green('claude-salary SessionEnd hook installed successfully.'));
+  console.log(chalk.green('claude-colleague SessionEnd hook installed successfully.'));
 }
 
 export async function uninstallHook(): Promise<void> {
@@ -88,16 +88,16 @@ export async function uninstallHook(): Promise<void> {
   const filtered = sessionEndHooks.filter((entry) => {
     if (!Array.isArray(entry.hooks)) return true;
     return !(entry.hooks as Array<Record<string, unknown>>).some(
-      (h) => typeof h.command === 'string' && (h.command as string).includes('claude-salary'),
+      (h) => typeof h.command === 'string' && (h.command as string).includes('claude-colleague'),
     );
   });
 
   if (filtered.length === sessionEndHooks.length) {
-    console.log(chalk.yellow('No claude-salary hook found. Nothing to uninstall.'));
+    console.log(chalk.yellow('No claude-colleague hook found. Nothing to uninstall.'));
     return;
   }
 
   hooks.SessionEnd = filtered;
   await writeFile(SETTINGS_FILE, JSON.stringify(settings, null, 2) + '\n', 'utf-8');
-  console.log(chalk.green('claude-salary SessionEnd hook removed successfully.'));
+  console.log(chalk.green('claude-colleague SessionEnd hook removed successfully.'));
 }

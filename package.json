@@ -1,10 +1,10 @@
 {
-  "name": "claude-salary",
+  "name": "claude-colleague",
   "version": "0.1.0",
   "description": "Calculate what Claude Code would earn as a human employee",
   "type": "module",
   "bin": {
-    "claude-salary": "./dist/index.js"
+    "claude-colleague": "./dist/index.js"
   },
   "exports": {
     ".": {
@@ -62,6 +62,6 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/chucknuris/Claude-Salary.git"
+    "url": "https://github.com/chucknuris/Claude-Colleague.git"
   }
 }
