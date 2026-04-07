@@ -50,7 +50,7 @@ describe('parseTranscript', () => {
     // "line1\nline2\nline3\n" has 3 newlines + 1 = 4 lines
     expect(events[0].linesWritten).toBe(4);
     expect(events[0].linesChanged).toBe(0);
-    expect(events[0].fileExtension).toBe('ts');
+    expect(events[0].fileExtension).toBe('.ts');
     expect(events[0].timestamp).toBe('2026-04-07T10:00:00Z');
   });
 
@@ -217,6 +217,6 @@ describe('parseTranscript', () => {
     await writeFile(filePath, line + '\n');
 
     const events = await collectEvents(filePath);
-    expect(events[0].fileExtension).toBe('css');
+    expect(events[0].fileExtension).toBe('.css');
   });
 });

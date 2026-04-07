@@ -1,37 +1,17 @@
 import * as os from 'node:os';
 import type { StatsCache, SessionEntry, ToolUseEvent, DateFilter, SalaryReport } from '../types.js';
+import { getDateRange } from '../utils/date-filters.js';
+import { formatDuration } from '../utils/format.js';
 import { calculateTokenCost } from './token-cost.js';
 import { calculateProductivity } from './productivity.js';
 import { calculateRoleComparison, getHourlyRateForRole } from './role-comparison.js';
 
-function getDateRange(filter: DateFilter): { start: Date; end: Date; label: string } {
-  const now = new Date();
-  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-
-  switch (filter) {
-    case 'today': {
-      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      return { start, end, label: 'Today' };
-    }
-    case 'week': {
-      const start = new Date(now);
-      start.setDate(now.getDate() - 7);
-      start.setHours(0, 0, 0, 0);
-      return { start, end, label: 'Past 7 days' };
-    }
-    case 'month': {
-      const start = new Date(now);
-      start.setDate(now.getDate() - 30);
-      start.setHours(0, 0, 0, 0);
-      return { start, end, label: 'Past 30 days' };
-    }
-    case 'all':
-    default: {
-      const start = new Date(0);
-      return { start, end, label: 'All time' };
-    }
-  }
-}
+const DATE_FILTER_LABELS: Record<DateFilter, string> = {
+  today: 'Today',
+  week: 'This week',
+  month: 'This month',
+  all: 'All time',
+};
 
 function pickPrimaryModel(modelUsage: Record<string, { inputTokens: number; outputTokens: number }>): string {
   let maxTokens = 0;
@@ -46,17 +26,6 @@ function pickPrimaryModel(modelUsage: Record<string, { inputTokens: number; outp
   }
 
   return primary;
-}
-
-function formatDuration(ms: number): string {
-  const totalSeconds = Math.floor(ms / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  }
-  return `${minutes}m`;
 }
 
 function filterSessionsByDate(sessions: SessionEntry[], start: Date, end: Date): SessionEntry[] {
@@ -75,10 +44,19 @@ export function calculateSalary(
   events: ToolUseEvent[],
   dateFilter: DateFilter,
 ): SalaryReport {
-  const { start, end, label } = getDateRange(dateFilter);
+  const { start, end } = getDateRange(dateFilter);
+  const label = DATE_FILTER_LABELS[dateFilter];
 
   // Filter sessions by date range
   const filteredSessions = filterSessionsByDate(sessions, start, end);
+
+  // Sum messages from filtered daily activity (not all-time total)
+  const filteredMessages = dateFilter === 'all'
+    ? stats.totalMessages
+    : stats.dailyActivity.reduce((sum, day) => {
+        const d = new Date(day.date);
+        return d >= start && d <= end ? sum + day.messages : sum;
+      }, 0);
 
   // Token cost
   const actualCost = calculateTokenCost(stats.modelUsage);
@@ -141,7 +119,7 @@ export function calculateSalary(
     },
     stats: {
       sessions: filteredSessions.length,
-      messages: stats.totalMessages,
+      messages: filteredMessages,
       toolCalls: events.length,
       longestShift: longestShiftFormatted,
       longestShiftDate,

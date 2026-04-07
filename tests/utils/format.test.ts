@@ -16,7 +16,7 @@ describe('formatCurrency', () => {
 
   it('formats a negative value', () => {
     // toLocaleString places the minus sign after the manually prepended $
-    expect(formatCurrency(-123.45)).toBe('$-123.45');
+    expect(formatCurrency(-123.45)).toBe('-$123.45');
   });
 
   it('formats a very small amount', () => {

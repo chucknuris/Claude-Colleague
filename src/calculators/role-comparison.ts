@@ -69,11 +69,13 @@ export function calculateRoleComparison(
 ): RoleComparisonResult {
   const dominantRole = determineDominantRole(toolEvents);
 
-  // Calculate full-time-equivalent developers per month
+  // Calculate FTE equivalents per month, scaled by productivity
+  // Seniors produce ~2x juniors, mids ~1.5x juniors
   const monthlyHours = WORK_DAYS_PER_MONTH * HOURS_PER_DAY;
-  const juniorEquiv = monthlyHours > 0 ? humanHours / monthlyHours : 0;
-  const midEquiv = juniorEquiv;
-  const seniorEquiv = juniorEquiv;
+  const baseFTE = monthlyHours > 0 ? humanHours / monthlyHours : 0;
+  const juniorEquiv = baseFTE;
+  const midEquiv = baseFTE * 0.67;
+  const seniorEquiv = baseFTE * 0.5;
 
   // Summary based on dominant role
   const equivLabel =

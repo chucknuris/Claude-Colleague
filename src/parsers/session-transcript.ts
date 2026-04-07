@@ -118,7 +118,7 @@ function processToolUse(
     }
   }
 
-  const fileExtension = filePath ? extname(filePath).replace(/^\./, '') || undefined : undefined;
+  const fileExtension = filePath ? extname(filePath) || undefined : undefined;
 
   return {
     toolName,

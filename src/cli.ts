@@ -125,11 +125,9 @@ async function runMain(opts: CliOptions): Promise<void> {
   const stats = statsResult.data;
   const sessions = sessionsResult.data ?? [];
 
-  // Step 5: Parse transcripts for full/deep analysis
-  const needsTranscripts = opts.compare || opts.card || opts.invoice || true; // always for full report
+  // Step 5: Parse transcripts for deep analysis (always needed for full report)
   let toolEvents: ToolUseEvent[] = [];
-
-  if (needsTranscripts) {
+  {
     spinner.text = 'Analyzing sessions...';
     const sessionPaths = sessions
       .filter(s => s.fullPath)

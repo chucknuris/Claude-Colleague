@@ -3,10 +3,12 @@
  * @example formatCurrency(47832) => "$47,832.00"
  */
 export function formatCurrency(amount: number): string {
-  return '$' + amount.toLocaleString('en-US', {
+  const abs = Math.abs(amount);
+  const formatted = '$' + abs.toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+  return amount < 0 ? `-${formatted}` : formatted;
 }
 
 /**

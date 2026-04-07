@@ -60,8 +60,8 @@ describe('calculateRoleComparison', () => {
     // monthlyHours = 20 * 8 = 160
     const result = calculateRoleComparison(160, []);
     expect(result.juniorEquiv).toBeCloseTo(1.0, 1);
-    expect(result.midEquiv).toBeCloseTo(1.0, 1);
-    expect(result.seniorEquiv).toBeCloseTo(1.0, 1);
+    expect(result.midEquiv).toBeCloseTo(0.67, 1);
+    expect(result.seniorEquiv).toBeCloseTo(0.5, 1);
   });
 
   it('returns 0 equivalents for zero hours', () => {
