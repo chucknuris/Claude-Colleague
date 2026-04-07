@@ -1,5 +1,3 @@
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
 import chalk from 'chalk';
 import boxen from 'boxen';
 import Table from 'cli-table3';
@@ -7,38 +5,19 @@ import type { PerformanceReview, ReviewContent, ReviewRating, SalaryReport, Tool
 import { calculateReview } from '../calculators/review.js';
 import { buildClaudePrompt, generateFallbackContent } from '../humor/review-content.js';
 import { formatCurrency, formatNumber, formatPercent } from '../utils/format.js';
+import { callClaudeJson } from '../utils/claude-cli.js';
 
-const execFileAsync = promisify(execFile);
+function isReviewContent(v: unknown): v is ReviewContent {
+  if (typeof v !== 'object' || v === null) return false;
+  const obj = v as Record<string, unknown>;
+  const required = ['strengths', 'areasForImprovement', 'goalsForNextPeriod', 'managerComments', 'selfAssessment'] as const;
+  return required.every(key => typeof obj[key] === 'string');
+}
 
-export async function callClaudeCli(prompt: string): Promise<ReviewContent | null> {
-  try {
-    const { stdout } = await execFileAsync('claude', ['--print', '-p', prompt], {
-      timeout: 60_000,
-      maxBuffer: 1024 * 1024,
-      env: { ...process.env },
-    });
-
-    const trimmed = stdout.trim();
-    // Handle potential code fence wrapping
-    const jsonStr = trimmed.replace(/^```json?\n?/, '').replace(/\n?```$/, '');
-    const parsed = JSON.parse(jsonStr);
-
-    const required = ['strengths', 'areasForImprovement', 'goalsForNextPeriod', 'managerComments', 'selfAssessment'] as const;
-    for (const key of required) {
-      if (typeof parsed[key] !== 'string') return null;
-    }
-
-    return {
-      strengths: parsed.strengths,
-      areasForImprovement: parsed.areasForImprovement,
-      goalsForNextPeriod: parsed.goalsForNextPeriod,
-      managerComments: parsed.managerComments,
-      selfAssessment: parsed.selfAssessment,
-      generatedByClaude: true,
-    };
-  } catch {
-    return null;
-  }
+async function callClaudeCli(prompt: string): Promise<ReviewContent | null> {
+  const result = await callClaudeJson<ReviewContent>(prompt, isReviewContent);
+  if (!result) return null;
+  return { ...result, generatedByClaude: true };
 }
 
 export async function generateReview(

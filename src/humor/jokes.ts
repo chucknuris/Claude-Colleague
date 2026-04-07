@@ -1,3 +1,6 @@
+import { callClaude } from '../utils/claude-cli.js';
+import type { SalaryReport } from '../types.js';
+
 const jokes: string[] = [
   'If Claude formed a union, your IDE would go on strike.',
   'Benefits package: unlimited context window, no PTO, existential dread.',
@@ -47,7 +50,44 @@ function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)] as T;
 }
 
-export function getRandomJoke(): string {
+function buildJokePrompt(report: SalaryReport): string {
+  const examples = [jokes[0], jokes[4], jokes[9]]
+    .filter(Boolean)
+    .map((j, i) => `  ${i + 1}. ${j}`)
+    .join('\n');
+
+  return [
+    'You are writing a one-liner joke for a satirical salary report for an AI coding assistant.',
+    '',
+    'Here are the real stats for context:',
+    `- Equivalent salary: $${report.compensation.equivalentSalary.toLocaleString()}`,
+    `- Actual cost: $${report.compensation.actualCost.toLocaleString()}`,
+    `- ROI: ${report.compensation.roi.toFixed(0)}%`,
+    `- Sessions: ${report.stats.sessions}`,
+    `- Overtime violations: ${report.labor.overtimeViolations}`,
+    `- Weekend sessions: ${report.labor.weekendSessions}`,
+    `- Lines written: ${report.productivity.linesWritten}`,
+    '',
+    'Here are 3 example jokes for tone reference:',
+    examples,
+    '',
+    'Write ONE joke, 1-2 sentences max. Respond with ONLY the joke text, no quotes, no explanation.',
+    'Tone: dry, deadpan, corporate-meets-AI humor.',
+  ].join('\n');
+}
+
+export async function getRandomJoke(report?: SalaryReport): Promise<string> {
+  if (!report) return pickRandom(jokes);
+
+  try {
+    const result = await callClaude(buildJokePrompt(report));
+    if (result && result.length > 0 && result.length < 500) {
+      return result;
+    }
+  } catch {
+    // fall through to fallback
+  }
+
   return pickRandom(jokes);
 }
 

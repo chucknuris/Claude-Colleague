@@ -1,4 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('../src/utils/claude-cli.js', () => ({
+  callClaudeJson: vi.fn().mockResolvedValue(null),
+}));
+
 import { calculateStandup } from '../src/calculators/standup.js';
 import { getStandupMood, generateStandupSections, getMoodEmoji, getMoodLabel } from '../src/humor/standup-content.js';
 import { generateStandupTerminal, generateStandupMarkdown } from '../src/generators/standup.js';
@@ -228,39 +233,39 @@ describe('mood helpers', () => {
 // --- Sections ---
 
 describe('generateStandupSections', () => {
-  it('returns all four sections as non-empty strings', () => {
+  it('returns all four sections as non-empty strings', async () => {
     const data = makeStandupData();
-    const sections = generateStandupSections(data);
+    const sections = await generateStandupSections(data);
     expect(sections.whatIDid).toBeTruthy();
     expect(sections.whatImDoing).toBeTruthy();
     expect(sections.blockers).toBeTruthy();
     expect(sections.watercooler).toBeTruthy();
   });
 
-  it('returns PTO message when no yesterday sessions', () => {
+  it('returns PTO message when no yesterday sessions', async () => {
     const data = makeStandupData({
       yesterday: { ...makeStandupData().yesterday, sessionCount: 0 },
     });
-    const sections = generateStandupSections(data);
+    const sections = await generateStandupSections(data);
     expect(sections.whatIDid.toLowerCase()).toMatch(/nothing|pto|quiet|zero/i);
   });
 
-  it('mentions today activity when today has sessions', () => {
+  it('mentions today activity when today has sessions', async () => {
     const data = makeStandupData();
-    const sections = generateStandupSections(data);
+    const sections = await generateStandupSections(data);
     expect(sections.whatImDoing).toMatch(/already started|messages/i);
   });
 
-  it('does not contain bullet points', () => {
+  it('does not contain bullet points', async () => {
     const data = makeStandupData();
-    const sections = generateStandupSections(data);
+    const sections = await generateStandupSections(data);
     const all = [sections.whatIDid, sections.whatImDoing, sections.blockers, sections.watercooler].join('\n');
     expect(all).not.toMatch(/^[\s]*[-*]\s/m);
   });
 
-  it('watercooler contains multiple gossip items', () => {
+  it('watercooler contains multiple gossip items', async () => {
     const data = makeStandupData();
-    const sections = generateStandupSections(data);
+    const sections = await generateStandupSections(data);
     // Should have multiple sentences
     const sentences = sections.watercooler.split('. ').filter(s => s.length > 10);
     expect(sentences.length).toBeGreaterThanOrEqual(2);
@@ -270,9 +275,9 @@ describe('generateStandupSections', () => {
 // --- Terminal generator ---
 
 describe('generateStandupTerminal', () => {
-  it('contains section headers', () => {
+  it('contains section headers', async () => {
     const data = makeStandupData();
-    const sections = generateStandupSections(data);
+    const sections = await generateStandupSections(data);
     const mood = getStandupMood(data);
     const output = generateStandupTerminal(data, sections, mood);
     expect(output).toContain('DAILY STANDUP');
@@ -286,9 +291,9 @@ describe('generateStandupTerminal', () => {
 // --- Markdown generator ---
 
 describe('generateStandupMarkdown', () => {
-  it('produces valid markdown without ANSI codes', () => {
+  it('produces valid markdown without ANSI codes', async () => {
     const data = makeStandupData();
-    const sections = generateStandupSections(data);
+    const sections = await generateStandupSections(data);
     const mood = getStandupMood(data);
     const md = generateStandupMarkdown(data, sections, mood);
     // No ANSI escape codes

@@ -277,14 +277,9 @@ describe('generateReviewTerminal', () => {
 
 // --- Claude CLI tests ---
 
-describe('callClaudeCli', () => {
-  it('returns null on ENOENT (claude not installed)', async () => {
-    // callClaudeCli uses execFile which will throw ENOENT if 'claude' doesn't exist
-    // We mock it to simulate this
-    const { callClaudeCli } = await import('../src/generators/review.js');
-    // If claude IS installed, this will actually call it — but the prompt is benign
-    // For a unit test, we test the error paths via vi.mock
-    // This test verifies the function exists and has the right signature
-    expect(typeof callClaudeCli).toBe('function');
+describe('claude-cli utility', () => {
+  it('callClaudeJson is importable and has the right signature', async () => {
+    const { callClaudeJson } = await import('../src/utils/claude-cli.js');
+    expect(typeof callClaudeJson).toBe('function');
   });
 });

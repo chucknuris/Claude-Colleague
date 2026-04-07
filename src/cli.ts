@@ -151,15 +151,18 @@ async function runMain(opts: CliOptions): Promise<void> {
     toolEvents = await parseAllTranscripts(sessionPaths, dateRange, dateFilter !== 'all');
   }
 
-  spinner.stop();
-
   // Step 6: Calculate salary
   const report = calculateSalary(stats, sessions, toolEvents, dateFilter);
 
-  // Step 7: Get humor elements
-  const title = getRandomTitle(toolEvents);
-  const joke = getRandomJoke();
-  const disclaimer = getRandomDisclaimer();
+  // Step 7: Get humor elements (parallel Claude calls)
+  spinner.text = 'Claude is writing your report...';
+  const [title, joke, disclaimer] = await Promise.all([
+    getRandomTitle(toolEvents, report),
+    getRandomJoke(report),
+    getRandomDisclaimer(report),
+  ]);
+
+  spinner.stop();
 
   // Step 8: Set title on report
   report.employee.title = title;
@@ -229,15 +232,16 @@ async function runStandup(): Promise<void> {
     .map(s => s.fullPath);
   const toolEvents = await parseAllTranscripts(sessionPaths, dateRange, true);
 
-  spinner.stop();
-
   const { calculateStandup } = await import('./calculators/standup.js');
   const { getStandupMood, generateStandupSections } = await import('./humor/standup-content.js');
   const { generateStandupTerminal, generateStandupMarkdown } = await import('./generators/standup.js');
 
   const standupData = calculateStandup(stats, sessions, toolEvents);
   const mood = getStandupMood(standupData);
-  const sections = generateStandupSections(standupData);
+
+  spinner.text = 'Claude is preparing the standup...';
+  const sections = await generateStandupSections(standupData, mood);
+  spinner.stop();
 
   // Terminal output
   console.log(generateStandupTerminal(standupData, sections, mood));
@@ -278,7 +282,7 @@ async function runReview(
   const toolEvents = await parseAllTranscripts(sessionPaths, dateRange, dateFilter !== 'all');
 
   const report = calculateSalary(stats, sessions, toolEvents, dateFilter);
-  const title = getRandomTitle(toolEvents);
+  const title = await getRandomTitle(toolEvents, report);
   report.employee.title = title;
 
   spinner.text = 'Generating performance review...';
@@ -316,7 +320,7 @@ async function runHookMode(
   const report = calculateSalary(stats, sessions, [], dateFilter);
 
   // Get a random title (no tool events available in hook mode)
-  const title = getRandomTitle();
+  const title = await getRandomTitle();
   report.employee.title = title;
 
   // Use the most recent session ID if available

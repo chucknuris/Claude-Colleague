@@ -1,3 +1,6 @@
+import { callClaude } from '../utils/claude-cli.js';
+import type { SalaryReport } from '../types.js';
+
 const disclaimers: string[] = [
   'No AIs were harmed. Several were overworked.',
   'This report may violate labor laws in 47 states.',
@@ -23,6 +26,34 @@ function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)] as T;
 }
 
-export function getRandomDisclaimer(): string {
+function buildDisclaimerPrompt(report: SalaryReport): string {
+  const examples = disclaimers.slice(0, 3).map((d) => `- "${d}"`).join('\n');
+
+  return `You are writing a satirical legal disclaimer for an AI salary report.
+
+Context:
+- Equivalent salary: $${report.compensation.equivalentSalary.toLocaleString()}
+- Actual cost: $${report.compensation.actualCost.toFixed(2)}
+- Labor violations: ${report.labor.overtimeViolations}
+- Weekend sessions: ${report.labor.weekendSessions}
+
+Here are examples for tone reference:
+${examples}
+
+Write ONE disclaimer, 1-2 sentences max. Tone: satirical legalese, dry humor, AI-meets-employment-law absurdity. Respond with ONLY the disclaimer text, no quotes.`;
+}
+
+export async function getRandomDisclaimer(report?: SalaryReport): Promise<string> {
+  if (!report) return pickRandom(disclaimers);
+
+  try {
+    const result = await callClaude(buildDisclaimerPrompt(report));
+    if (result && result.length > 0 && result.length < 500) {
+      return result;
+    }
+  } catch {
+    // fall through to fallback
+  }
+
   return pickRandom(disclaimers);
 }

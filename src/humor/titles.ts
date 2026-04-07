@@ -1,4 +1,5 @@
-import type { ToolUseEvent } from '../types.js';
+import type { ToolUseEvent, SalaryReport } from '../types.js';
+import { callClaude } from '../utils/claude-cli.js';
 
 const writeTitles = [
   'Distinguished Copy-Paste Architect',
@@ -144,13 +145,74 @@ const categoryMap: Record<string, string[]> = {
   agent: agentTitles,
 };
 
-export function getRandomTitle(toolEvents?: ToolUseEvent[]): string {
+function buildTitlePrompt(
+  dominantCategory: string | null,
+  toolEvents: ToolUseEvent[],
+  report?: SalaryReport,
+): string {
+  const counts: Record<string, number> = {};
+  for (const event of toolEvents) {
+    const name = event.toolName.toLowerCase();
+    counts[name] = (counts[name] ?? 0) + 1;
+  }
+  const breakdown = Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, count]) => `${name}: ${count}`)
+    .join(', ');
+
+  const examplePool = (dominantCategory ? categoryMap[dominantCategory] : undefined) ?? generalTitles;
+  const examples = Array.from({ length: 3 }, () => pickRandom(examplePool));
+
+  let statsBlock = '';
+  if (report) {
+    const parts: string[] = [];
+    if (report.stats?.sessions) parts.push(`${report.stats.sessions} sessions`);
+    if (report.productivity?.linesWritten) parts.push(`${report.productivity.linesWritten} lines written`);
+    if (report.compensation?.roi) parts.push(`${report.compensation.roi}x ROI`);
+    if (parts.length > 0) {
+      statsBlock = `\nReal stats: ${parts.join(', ')}.`;
+    }
+  }
+
+  return [
+    'You are naming an AI coding assistant\'s fake corporate job title for a satirical salary report.',
+    `Dominant tool category: ${dominantCategory ?? 'general'}. Tool breakdown: ${breakdown}.`,
+    `Here are examples for tone reference: "${examples[0]}", "${examples[1]}", "${examples[2]}".`,
+    statsBlock,
+    'Generate ONE creative, funny job title in the same style. Respond with ONLY the title text in quotes, nothing else.',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+function fallbackTitle(toolEvents?: ToolUseEvent[]): string {
   if (toolEvents && toolEvents.length > 0) {
     const dominant = getDominantCategory(toolEvents);
     if (dominant && categoryMap[dominant]) {
       return pickRandom(categoryMap[dominant]);
     }
   }
-
   return pickRandom(generalTitles);
+}
+
+export async function getRandomTitle(toolEvents?: ToolUseEvent[], report?: SalaryReport): Promise<string> {
+  if (toolEvents && toolEvents.length > 0) {
+    try {
+      const dominant = getDominantCategory(toolEvents);
+      const prompt = buildTitlePrompt(dominant, toolEvents, report);
+      const response = await callClaude(prompt);
+
+      if (response) {
+        const title = response.trim().replace(/^["']|["']$/g, '');
+        if (title.length > 0 && title.length < 200) {
+          return title;
+        }
+      }
+    } catch {
+      // Fall through to template fallback
+    }
+  }
+
+  return fallbackTitle(toolEvents);
 }

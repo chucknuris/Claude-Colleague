@@ -1,4 +1,5 @@
 import type { StandupData, StandupMood, StandupSections } from '../types.js';
+import { callClaudeJson } from '../utils/claude-cli.js';
 
 function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)] as T;
@@ -253,7 +254,55 @@ function buildWatercooler(): string {
   return pickN(gossip, 3).join(' ');
 }
 
-export function generateStandupSections(data: StandupData): StandupSections {
+function buildStandupPrompt(data: StandupData, mood: StandupMood): string {
+  const exampleWhatIDid = pickRandom(writeOpenings);
+  const exampleWhatImDoing = pickRandom(todayDefaultTemplates);
+  const exampleBlockers = pickRandom(genericBlockers);
+  const exampleWatercooler = pickRandom(gossip);
+
+  return `You are generating a daily standup report for yourself — an AI coding assistant (Claude) who is treated as a regular human employee on a software team.
+
+Here is the full standup data as JSON:
+${JSON.stringify(data, null, 2)}
+
+Current mood: "${mood}"
+
+Respond with a JSON object containing exactly 4 keys: whatIDid, whatImDoing, blockers, watercooler.
+Each value should be a string of 2-4 sentences, written in first person as Claude, with a dry and sarcastic corporate tone.
+
+Guidelines for each section:
+- whatIDid: Reference real stats from the data — files modified, lines written, tools used, branches worked on, late night or weekend work.
+- whatImDoing: Based on yesterday's patterns and today's progress so far.
+- blockers: Sarcastic but grounded in the real work patterns from the data.
+- watercooler: Developer gossip, tool drama, or office humor. This can be fictional and fun.
+
+Here is one example entry per section for tone reference:
+- whatIDid: "${exampleWhatIDid}"
+- whatImDoing: "${exampleWhatImDoing}"
+- blockers: "${exampleBlockers}"
+- watercooler: "${exampleWatercooler}"
+
+Return raw JSON only. No code fences, no explanation, no extra text.`;
+}
+
+function isStandupSections(v: unknown): v is StandupSections {
+  if (typeof v !== 'object' || v === null) return false;
+  const obj = v as Record<string, unknown>;
+  return (
+    typeof obj.whatIDid === 'string' &&
+    typeof obj.whatImDoing === 'string' &&
+    typeof obj.blockers === 'string' &&
+    typeof obj.watercooler === 'string'
+  );
+}
+
+export async function generateStandupSections(data: StandupData, mood?: StandupMood): Promise<StandupSections> {
+  const resolvedMood = mood ?? getStandupMood(data);
+
+  const prompt = buildStandupPrompt(data, resolvedMood);
+  const result = await callClaudeJson<StandupSections>(prompt, isStandupSections);
+  if (result) return result;
+
   return {
     whatIDid: buildWhatIDid(data),
     whatImDoing: buildWhatImDoing(data),
