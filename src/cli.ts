@@ -181,7 +181,7 @@ async function runMain(opts: CliOptions): Promise<void> {
   // Step 11: Generate PDF invoice if requested
   if (opts.invoice) {
     const invoiceSpinner = ora('Generating invoice...').start();
-    const invoicePath = await generateInvoice(report);
+    const invoicePath = await generateInvoice(report, toolEvents);
     invoiceSpinner.succeed(`Invoice saved to ${chalk.cyan(invoicePath)}`);
   }
 
