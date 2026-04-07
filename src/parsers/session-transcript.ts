@@ -1,9 +1,19 @@
 import { createReadStream } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { createInterface } from 'node:readline';
-import { extname, join } from 'node:path';
+import { extname, join, resolve } from 'node:path';
 import type { DateRange, ToolUseEvent } from '../types.js';
-import { PROJECTS_DIR } from '../utils/paths.js';
+import { CLAUDE_HOME, PROJECTS_DIR } from '../utils/paths.js';
+
+const MAX_TOTAL_EVENTS = 500_000;
+
+/**
+ * Validate that a file path is within ~/.claude/ to prevent path traversal.
+ */
+function isPathSafe(filePath: string): boolean {
+  const resolved = resolve(filePath);
+  return resolved.startsWith(CLAUDE_HOME);
+}
 
 /**
  * Stream-parse a .jsonl transcript file, yielding ToolUseEvent objects
@@ -171,16 +181,20 @@ export async function parseAllTranscripts(
   const discoveredPaths = await discoverJsonlFiles();
 
   // Merge: use provided paths + any discovered paths not already included
-  const pathSet = new Set(sessionPaths);
-  for (const p of discoveredPaths) {
-    pathSet.add(p);
+  // Validate all paths are within ~/.claude/ to prevent path traversal
+  const pathSet = new Set<string>();
+  for (const p of [...sessionPaths, ...discoveredPaths]) {
+    if (isPathSafe(p)) {
+      pathSet.add(p);
+    }
   }
   const allPaths = [...pathSet];
 
   const allEvents: ToolUseEvent[] = [];
   const concurrencyLimit = 10;
+  let reachedLimit = false;
 
-  for (let i = 0; i < allPaths.length; i += concurrencyLimit) {
+  for (let i = 0; i < allPaths.length && !reachedLimit; i += concurrencyLimit) {
     const batch = allPaths.slice(i, i + concurrencyLimit);
 
     const batchResults = await Promise.allSettled(
@@ -189,6 +203,7 @@ export async function parseAllTranscripts(
         try {
           for await (const event of parseTranscript(filePath)) {
             events.push(event);
+            if (allEvents.length + events.length >= MAX_TOTAL_EVENTS) break;
           }
         } catch {
           // Skip files that can't be read
@@ -200,6 +215,10 @@ export async function parseAllTranscripts(
     for (const result of batchResults) {
       if (result.status === 'fulfilled') {
         allEvents.push(...result.value);
+        if (allEvents.length >= MAX_TOTAL_EVENTS) {
+          reachedLimit = true;
+          break;
+        }
       }
     }
   }
