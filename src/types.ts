@@ -21,7 +21,10 @@ export interface DailyActivity {
 
 export interface DailyModelTokens {
   date: string;
-  models: Record<string, ModelTokens>;
+  /** Current format: total tokens per model as a single number */
+  tokensByModel?: Record<string, number>;
+  /** Legacy format: detailed breakdown per model */
+  models?: Record<string, ModelTokens>;
 }
 
 export interface ModelTokens {

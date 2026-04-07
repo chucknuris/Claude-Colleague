@@ -50,13 +50,22 @@ export function calculateSalary(
   // Filter sessions by date range
   const filteredSessions = filterSessionsByDate(sessions, start, end);
 
-  // Sum messages from filtered daily activity (not all-time total)
+  // Sum messages and session count from daily activity (authoritative source)
   const filteredMessages = dateFilter === 'all'
     ? stats.totalMessages
     : stats.dailyActivity.reduce((sum, day) => {
         const d = new Date(day.date);
         return d >= start && d <= end ? sum + day.messageCount : sum;
       }, 0);
+
+  // Use daily activity session counts as authoritative when higher than discovered sessions
+  const statsSessionCount = dateFilter === 'all'
+    ? stats.totalSessions
+    : stats.dailyActivity.reduce((sum, day) => {
+        const d = new Date(day.date);
+        return d >= start && d <= end ? sum + day.sessionCount : sum;
+      }, 0);
+  const sessionCount = Math.max(filteredSessions.length, statsSessionCount);
 
   // Token cost — use daily breakdown for filtered periods, global for all-time
   const actualCost = dateFilter === 'all'
@@ -137,7 +146,7 @@ export function calculateSalary(
       label,
     },
     stats: {
-      sessions: filteredSessions.length,
+      sessions: sessionCount,
       messages: filteredMessages,
       toolCalls: events.length,
       longestShift: longestShiftFormatted,

@@ -74,16 +74,25 @@ export function calculateDailyTokenCost(
       }
     }
 
-    if (!day.models) continue;
-
-    for (const [model, tokens] of Object.entries(day.models)) {
-      const usage: ModelUsage = {
-        inputTokens: tokens.inputTokens,
-        outputTokens: tokens.outputTokens,
-        cacheReadInputTokens: tokens.cacheReadInputTokens,
-        cacheCreationInputTokens: tokens.cacheCreationInputTokens,
-      };
-      total += computeCost(usage, getPricing(model));
+    // Handle both formats: tokensByModel (total count) and models (detailed breakdown)
+    if (day.tokensByModel) {
+      for (const [model, tokenCount] of Object.entries(day.tokensByModel)) {
+        // Only total tokens available — estimate 30% input, 70% output split
+        const pricing = getPricing(model);
+        const estimatedInput = tokenCount * 0.3;
+        const estimatedOutput = tokenCount * 0.7;
+        total += (estimatedInput * pricing.inputPerMillion + estimatedOutput * pricing.outputPerMillion) / 1_000_000;
+      }
+    } else if (day.models) {
+      for (const [model, tokens] of Object.entries(day.models)) {
+        const usage: ModelUsage = {
+          inputTokens: tokens.inputTokens,
+          outputTokens: tokens.outputTokens,
+          cacheReadInputTokens: tokens.cacheReadInputTokens,
+          cacheCreationInputTokens: tokens.cacheCreationInputTokens,
+        };
+        total += computeCost(usage, getPricing(model));
+      }
     }
   }
 
