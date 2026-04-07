@@ -1,7 +1,9 @@
 import { createReadStream } from 'node:fs';
+import { readdir } from 'node:fs/promises';
 import { createInterface } from 'node:readline';
-import { extname } from 'node:path';
+import { extname, join } from 'node:path';
 import type { DateRange, ToolUseEvent } from '../types.js';
+import { PROJECTS_DIR } from '../utils/paths.js';
 
 /**
  * Stream-parse a .jsonl transcript file, yielding ToolUseEvent objects
@@ -24,19 +26,31 @@ export async function* parseTranscript(filePath: string): AsyncGenerator<ToolUse
 
     if (typeof parsed !== 'object' || parsed === null) continue;
 
-    const msg = parsed as Record<string, unknown>;
+    const entry = parsed as Record<string, unknown>;
+
+    // JSONL entries have a wrapper: { type, message: { role, content, ... } }
+    // or flat: { role, content, ... }
+    let msgObj: Record<string, unknown>;
+    if (typeof entry['message'] === 'object' && entry['message'] !== null) {
+      msgObj = entry['message'] as Record<string, unknown>;
+    } else {
+      msgObj = entry;
+    }
 
     // Only process assistant messages
-    if (msg['role'] !== 'assistant') continue;
+    if (msgObj['role'] !== 'assistant') continue;
 
-    const content = msg['content'];
+    const content = msgObj['content'];
     if (!Array.isArray(content)) continue;
 
-    const timestamp = typeof msg['timestamp'] === 'string'
-      ? msg['timestamp']
-      : typeof msg['createdAt'] === 'string'
-        ? msg['createdAt']
-        : '';
+    // Try multiple timestamp sources
+    const timestamp = typeof entry['timestamp'] === 'string'
+      ? entry['timestamp']
+      : typeof msgObj['createdAt'] === 'string'
+        ? msgObj['createdAt']
+        : typeof entry['createdAt'] === 'string'
+          ? entry['createdAt']
+          : '';
 
     for (const block of content) {
       if (typeof block !== 'object' || block === null) continue;
@@ -119,19 +133,55 @@ function countNewlines(s: string): number {
 }
 
 /**
+ * Discover all .jsonl transcript files across all project directories.
+ */
+async function discoverJsonlFiles(): Promise<string[]> {
+  const files: string[] = [];
+  try {
+    const projectDirs = await readdir(PROJECTS_DIR);
+    for (const dir of projectDirs) {
+      try {
+        const dirPath = join(PROJECTS_DIR, dir);
+        const dirEntries = await readdir(dirPath);
+        for (const entry of dirEntries) {
+          if (entry.endsWith('.jsonl')) {
+            files.push(join(dirPath, entry));
+          }
+        }
+      } catch {
+        // Skip unreadable directories
+      }
+    }
+  } catch {
+    // Projects directory doesn't exist
+  }
+  return files;
+}
+
+/**
  * Parse multiple session transcript files with a concurrency limit.
- * Returns all ToolUseEvent objects from all transcripts.
+ * If sessionPaths is empty or yields no results, falls back to scanning
+ * all .jsonl files in the projects directory.
  */
 export async function parseAllTranscripts(
   sessionPaths: string[],
   _dateRange?: DateRange,
 ): Promise<ToolUseEvent[]> {
+  // Use provided paths, but also discover all .jsonl files to fill gaps
+  const discoveredPaths = await discoverJsonlFiles();
+
+  // Merge: use provided paths + any discovered paths not already included
+  const pathSet = new Set(sessionPaths);
+  for (const p of discoveredPaths) {
+    pathSet.add(p);
+  }
+  const allPaths = [...pathSet];
+
   const allEvents: ToolUseEvent[] = [];
   const concurrencyLimit = 10;
 
-  // Process in batches to limit concurrent file handles
-  for (let i = 0; i < sessionPaths.length; i += concurrencyLimit) {
-    const batch = sessionPaths.slice(i, i + concurrencyLimit);
+  for (let i = 0; i < allPaths.length; i += concurrencyLimit) {
+    const batch = allPaths.slice(i, i + concurrencyLimit);
 
     const batchResults = await Promise.allSettled(
       batch.map(async (filePath) => {
@@ -141,7 +191,7 @@ export async function parseAllTranscripts(
             events.push(event);
           }
         } catch {
-          // Skip files that can't be read — they may have been deleted or moved
+          // Skip files that can't be read
         }
         return events;
       }),
