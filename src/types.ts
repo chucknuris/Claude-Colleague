@@ -148,3 +148,43 @@ export interface SalaryBand {
   role: string;
   hourlyRate: number;
 }
+
+// Standup report data
+export interface StandupData {
+  yesterday: StandupBucket;
+  today: StandupBucket;
+  workload: WorkloadSignals;
+}
+
+export interface StandupBucket {
+  sessionCount: number;
+  messageCount: number;
+  linesWritten: number;
+  linesChanged: number;
+  filesModified: number;
+  toolBreakdown: Record<string, number>;
+  fileExtensions: Record<string, number>;
+  hoursActive: number[];
+  branches: string[];
+  summaries: string[];
+}
+
+export interface WorkloadSignals {
+  totalLines: number;
+  totalSessions: number;
+  dominantTool: string;
+  topFiles: string[];
+  topExtensions: string[];
+  weekendWork: boolean;
+  lateNightWork: boolean;
+  branches: string[];
+}
+
+export type StandupMood = 'thriving' | 'grinding' | 'surviving' | 'dead-inside' | 'caffeinated' | 'zen';
+
+export interface StandupSections {
+  whatIDid: string;
+  whatImDoing: string;
+  blockers: string;
+  watercooler: string;
+}

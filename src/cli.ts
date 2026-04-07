@@ -4,7 +4,7 @@ import ora from 'ora';
 import { existsSync } from 'node:fs';
 import type { DateFilter, ToolUseEvent } from './types.js';
 import { CLAUDE_HOME } from './utils/paths.js';
-import { getDateRange } from './utils/date-filters.js';
+import { getDateRange, getStandupDateRange } from './utils/date-filters.js';
 import { parseStatsCache } from './parsers/stats-cache.js';
 import { parseAllSessionIndexes } from './parsers/session-index.js';
 import { parseAllTranscripts } from './parsers/session-transcript.js';
@@ -30,6 +30,7 @@ export function run(argv: string[]) {
     .option('--card', 'Generate shareable PNG card')
     .option('--invoice', 'Generate PDF invoice')
     .option('--compare', 'Detailed role comparison')
+    .option('--standup', 'Generate daily standup report')
     .option('--hook-mode', 'Compact output for session hook (internal)')
     .action(async (opts) => {
       try {
@@ -79,6 +80,7 @@ interface CliOptions {
   card?: boolean;
   invoice?: boolean;
   compare?: boolean;
+  standup?: boolean;
   hookMode?: boolean;
 }
 
@@ -98,6 +100,12 @@ async function runMain(opts: CliOptions): Promise<void> {
 
   const dateFilter = resolveDateFilter(opts);
   const dateRange = getDateRange(dateFilter);
+
+  // --standup: daily standup report
+  if (opts.standup) {
+    await runStandup();
+    return;
+  }
 
   // --hook-mode: compact, fast path — no transcript parsing
   if (opts.hookMode) {
@@ -180,6 +188,57 @@ async function runMain(opts: CliOptions): Promise<void> {
       console.log(`  ${chalk.dim.italic(report.roleComparison.promotionJoke)}`);
     }
   }
+}
+
+async function runStandup(): Promise<void> {
+  if (!existsSync(CLAUDE_HOME)) {
+    console.error(chalk.red('No Claude Code data found. Run Claude Code first!'));
+    process.exit(1);
+  }
+
+  const dateRange = getStandupDateRange();
+  const spinner = ora('Preparing standup...').start();
+
+  const [statsResult, sessionsResult] = await Promise.all([
+    parseStatsCache(dateRange),
+    parseAllSessionIndexes(dateRange),
+  ]);
+
+  if (!statsResult.data) {
+    spinner.fail('Failed to read Claude Code data');
+    for (const err of statsResult.errors) {
+      console.error(chalk.red(`  ${err.error}`));
+    }
+    process.exit(1);
+  }
+
+  const stats = statsResult.data;
+  const sessions = sessionsResult.data ?? [];
+
+  spinner.text = 'Analyzing sessions...';
+  const sessionPaths = sessions
+    .filter(s => s.fullPath)
+    .map(s => s.fullPath);
+  const toolEvents = await parseAllTranscripts(sessionPaths, dateRange, true);
+
+  spinner.stop();
+
+  const { calculateStandup } = await import('./calculators/standup.js');
+  const { getStandupMood, generateStandupSections } = await import('./humor/standup-content.js');
+  const { generateStandupTerminal, generateStandupMarkdown } = await import('./generators/standup.js');
+
+  const standupData = calculateStandup(stats, sessions, toolEvents);
+  const mood = getStandupMood(standupData);
+  const sections = generateStandupSections(standupData);
+
+  // Terminal output
+  console.log(generateStandupTerminal(standupData, sections, mood));
+
+  // Markdown output
+  console.log('');
+  console.log(chalk.dim('--- Copiable Markdown below ---'));
+  console.log('');
+  console.log(generateStandupMarkdown(standupData, sections, mood));
 }
 
 async function runHookMode(

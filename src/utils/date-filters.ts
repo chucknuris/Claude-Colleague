@@ -53,3 +53,30 @@ export function isInRange(dateStr: string, range: DateRange): boolean {
   if (isNaN(d.getTime())) return false;
   return d >= range.start && d <= range.end;
 }
+
+/**
+ * Get a DateRange covering yesterday-start to today-end (48-hour window for standup).
+ */
+export function getStandupDateRange(): DateRange {
+  const now = new Date();
+  const endOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    23, 59, 59, 999,
+  );
+  const startOfYesterday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() - 1,
+  );
+  return { start: startOfYesterday, end: endOfToday };
+}
+
+/**
+ * Midnight boundary between "yesterday" and "today" (start of today in local time).
+ */
+export function getYesterdayBoundary(): Date {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
