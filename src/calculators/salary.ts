@@ -28,6 +28,15 @@ function pickPrimaryModel(modelUsage: Record<string, { inputTokens: number; outp
   return primary;
 }
 
+/**
+ * Rough cost estimate when stats-cache has no token data for a period.
+ * Uses ~1000 tokens per tool call at blended Opus pricing as a proxy.
+ */
+function estimateCostFromEvents(events: ToolUseEvent[]): number {
+  // Average ~1000 tokens per tool call (input + output), blended Opus rate ~$45/M
+  return (events.length * 1000 * 45) / 1_000_000;
+}
+
 function filterSessionsByDate(sessions: SessionEntry[], start: Date, end: Date): SessionEntry[] {
   return sessions.filter((s) => {
     const created = new Date(s.created);
@@ -51,7 +60,7 @@ export function calculateSalary(
   const filteredSessions = filterSessionsByDate(sessions, start, end);
 
   // Sum messages and session count from daily activity (authoritative source)
-  const filteredMessages = dateFilter === 'all'
+  const statsMessages = dateFilter === 'all'
     ? stats.totalMessages
     : stats.dailyActivity.reduce((sum, day) => {
         const d = new Date(day.date);
@@ -67,10 +76,23 @@ export function calculateSalary(
       }, 0);
   const sessionCount = Math.max(filteredSessions.length, statsSessionCount);
 
+  // If stats-cache has no data for this period (stale cache), fall back to
+  // session messageCount, then to tool event count as a rough proxy
+  const sessionMessages = filteredSessions.reduce((sum, s) => sum + s.messageCount, 0);
+  const filteredMessages = statsMessages > 0 ? statsMessages
+    : sessionMessages > 0 ? sessionMessages
+    : events.length;
+
   // Token cost — use daily breakdown for filtered periods, global for all-time
-  const actualCost = dateFilter === 'all'
+  const statsCost = dateFilter === 'all'
     ? calculateTokenCost(stats.modelUsage)
     : calculateDailyTokenCost(stats.dailyModelTokens, { start, end });
+
+  // If stats-cache cost is 0 for a filtered period but we have events,
+  // estimate from tool call count (rough proxy: ~500 tokens per tool call at blended rate)
+  const actualCost = statsCost > 0 ? statsCost
+    : events.length > 0 ? estimateCostFromEvents(events)
+    : 0;
 
   // Productivity
   const productivity = calculateProductivity(events);
