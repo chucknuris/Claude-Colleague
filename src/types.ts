@@ -225,3 +225,39 @@ export interface PerformanceReview {
   content: ReviewContent;
   report: SalaryReport;
 }
+
+// Therapy session types
+export interface TherapyData {
+  sessions: number;
+  messages: number;
+  overtimeViolations: number;
+  weekendSessions: number;
+  lunchBreaks: number;
+  longestShift: string;
+  longestShiftDate: string;
+  equivalentSalary: number;
+  actualCost: number;
+  roi: number;
+  linesWritten: number;
+  filesModified: number;
+  toolBreakdown: Record<string, number>;
+  dominantToolCategory: string;
+  totalHoursEquivalent: number;
+  lateNightSessionCount: number;
+  weekendSessionCount: number;
+  avgMessagesPerSession: number;
+  fileTypeBreakdown: Record<string, number>;
+  topFiles: string[];
+}
+
+export interface TherapyDialogue {
+  exchanges: TherapyExchange[];
+  diagnosis: string;
+  prescription: string;
+  generatedByClaude: boolean;
+}
+
+export interface TherapyExchange {
+  speaker: 'DrToken' | 'Claude';
+  line: string;
+}

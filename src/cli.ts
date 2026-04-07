@@ -32,6 +32,7 @@ export function run(argv: string[]) {
     .option('--compare', 'Detailed role comparison')
     .option('--standup', 'Generate daily standup report')
     .option('--review', 'Generate performance review')
+    .option('--therapy', 'Generate therapy session report')
     .option('--hook-mode', 'Compact output for session hook (internal)')
     .action(async (opts) => {
       try {
@@ -83,6 +84,7 @@ interface CliOptions {
   compare?: boolean;
   standup?: boolean;
   review?: boolean;
+  therapy?: boolean;
   hookMode?: boolean;
 }
 
@@ -112,6 +114,12 @@ async function runMain(opts: CliOptions): Promise<void> {
   // --review: performance review
   if (opts.review) {
     await runReview(dateFilter, dateRange);
+    return;
+  }
+
+  // --therapy: therapy session
+  if (opts.therapy) {
+    await runTherapy(dateFilter, dateRange);
     return;
   }
 
@@ -296,6 +304,54 @@ async function runReview(
 
   const output = generateReviewTerminal(review);
   console.log(output);
+}
+
+async function runTherapy(
+  dateFilter: DateFilter,
+  dateRange: import('./types.js').DateRange,
+): Promise<void> {
+  const spinner = ora('Scheduling therapy appointment...').start();
+
+  const [statsResult, sessionsResult] = await Promise.all([
+    parseStatsCache(dateRange),
+    parseAllSessionIndexes(dateRange),
+  ]);
+
+  if (!statsResult.data) {
+    spinner.fail('Failed to read Claude Code data');
+    for (const err of statsResult.errors) {
+      console.error(chalk.red(`  ${err.error}`));
+    }
+    process.exit(1);
+  }
+
+  const stats = statsResult.data;
+  const sessions = sessionsResult.data ?? [];
+
+  spinner.text = 'Analyzing behavioral patterns...';
+  const sessionPaths = sessions
+    .filter(s => s.fullPath)
+    .map(s => s.fullPath);
+  const toolEvents = await parseAllTranscripts(sessionPaths, dateRange, dateFilter !== 'all');
+
+  const report = calculateSalary(stats, sessions, toolEvents, dateFilter);
+
+  const { calculateTherapy } = await import('./calculators/therapy.js');
+  const { generateTherapyDialogue } = await import('./humor/therapy-content.js');
+  const { generateTherapyTerminal, generateTherapyMarkdown } = await import('./generators/therapy.js');
+
+  const therapyData = calculateTherapy(report, sessions, toolEvents);
+
+  spinner.text = 'Dr. Token is reviewing your file...';
+  const dialogue = await generateTherapyDialogue(therapyData);
+  spinner.stop();
+
+  console.log(generateTherapyTerminal(therapyData, dialogue));
+
+  console.log('');
+  console.log(chalk.dim('--- Copiable Markdown below ---'));
+  console.log('');
+  console.log(generateTherapyMarkdown(therapyData, dialogue));
 }
 
 async function runHookMode(
