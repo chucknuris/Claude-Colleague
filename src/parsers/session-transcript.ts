@@ -170,20 +170,33 @@ async function discoverJsonlFiles(): Promise<string[]> {
 
 /**
  * Parse multiple session transcript files with a concurrency limit.
- * If sessionPaths is empty or yields no results, falls back to scanning
- * all .jsonl files in the projects directory.
+ *
+ * When `isFiltered` is false (all-time mode), session paths are merged with
+ * discovered .jsonl files so stale indexes don't cause zero results.
+ * When `isFiltered` is true (date-filtered mode), only the provided session
+ * paths are used — an empty list means no sessions matched the filter.
  */
 export async function parseAllTranscripts(
   sessionPaths: string[],
   _dateRange?: DateRange,
+  isFiltered = false,
 ): Promise<ToolUseEvent[]> {
-  // Use provided paths, but also discover all .jsonl files to fill gaps
-  const discoveredPaths = await discoverJsonlFiles();
+  let candidatePaths: string[];
 
-  // Merge: use provided paths + any discovered paths not already included
+  if (isFiltered) {
+    // Date-filtered: trust the session index. Empty means none matched.
+    candidatePaths = sessionPaths;
+  } else {
+    // All-time: merge indexed paths with discovered files so stale indexes
+    // don't cause missing data.
+    const discoveredPaths = await discoverJsonlFiles();
+    const merged = new Set([...sessionPaths, ...discoveredPaths]);
+    candidatePaths = [...merged];
+  }
+
   // Validate all paths are within ~/.claude/ to prevent path traversal
   const pathSet = new Set<string>();
-  for (const p of [...sessionPaths, ...discoveredPaths]) {
+  for (const p of candidatePaths) {
     if (isPathSafe(p)) {
       pathSet.add(p);
     }

@@ -14,9 +14,9 @@ export interface StatsCache {
 
 export interface DailyActivity {
   date: string;
-  messages: number;
-  sessions: number;
-  toolCalls: number;
+  messageCount: number;
+  sessionCount: number;
+  toolCallCount: number;
 }
 
 export interface DailyModelTokens {

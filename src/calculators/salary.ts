@@ -2,7 +2,7 @@ import * as os from 'node:os';
 import type { StatsCache, SessionEntry, ToolUseEvent, DateFilter, SalaryReport } from '../types.js';
 import { getDateRange } from '../utils/date-filters.js';
 import { formatDuration } from '../utils/format.js';
-import { calculateTokenCost } from './token-cost.js';
+import { calculateTokenCost, calculateDailyTokenCost } from './token-cost.js';
 import { calculateProductivity } from './productivity.js';
 import { calculateRoleComparison, getHourlyRateForRole } from './role-comparison.js';
 
@@ -55,11 +55,13 @@ export function calculateSalary(
     ? stats.totalMessages
     : stats.dailyActivity.reduce((sum, day) => {
         const d = new Date(day.date);
-        return d >= start && d <= end ? sum + day.messages : sum;
+        return d >= start && d <= end ? sum + day.messageCount : sum;
       }, 0);
 
-  // Token cost
-  const actualCost = calculateTokenCost(stats.modelUsage);
+  // Token cost — use daily breakdown for filtered periods, global for all-time
+  const actualCost = dateFilter === 'all'
+    ? calculateTokenCost(stats.modelUsage)
+    : calculateDailyTokenCost(stats.dailyModelTokens, { start, end });
 
   // Productivity
   const productivity = calculateProductivity(events);
@@ -94,11 +96,28 @@ export function calculateSalary(
     }
   }
 
-  // Longest shift
-  const longestShiftFormatted = stats.longestSession
-    ? formatDuration(stats.longestSession.duration)
-    : '0m';
-  const longestShiftDate = stats.longestSession?.date ?? 'N/A';
+  // Longest shift — compute from filtered sessions, fall back to global stat for all-time
+  let longestShiftFormatted: string;
+  let longestShiftDate: string;
+
+  if (dateFilter === 'all' && stats.longestSession && stats.longestSession.duration > 0) {
+    longestShiftFormatted = formatDuration(stats.longestSession.duration);
+    longestShiftDate = stats.longestSession.date ?? 'N/A';
+  } else {
+    let maxDuration = 0;
+    let maxDate = 'N/A';
+    for (const session of filteredSessions) {
+      const created = new Date(session.created);
+      const modified = new Date(session.modified);
+      const duration = modified.getTime() - created.getTime();
+      if (duration > maxDuration) {
+        maxDuration = duration;
+        maxDate = session.created.split('T')[0] ?? 'N/A';
+      }
+    }
+    longestShiftFormatted = maxDuration > 0 ? formatDuration(maxDuration) : '0m';
+    longestShiftDate = maxDate;
+  }
 
   // Primary model
   const primaryModel = pickPrimaryModel(stats.modelUsage);

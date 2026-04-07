@@ -74,6 +74,8 @@ export function calculateDailyTokenCost(
       }
     }
 
+    if (!day.models) continue;
+
     for (const [model, tokens] of Object.entries(day.models)) {
       const usage: ModelUsage = {
         inputTokens: tokens.inputTokens,

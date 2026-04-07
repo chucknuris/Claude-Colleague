@@ -132,7 +132,7 @@ async function runMain(opts: CliOptions): Promise<void> {
     const sessionPaths = sessions
       .filter(s => s.fullPath)
       .map(s => s.fullPath);
-    toolEvents = await parseAllTranscripts(sessionPaths, dateRange);
+    toolEvents = await parseAllTranscripts(sessionPaths, dateRange, dateFilter !== 'all');
   }
 
   spinner.stop();

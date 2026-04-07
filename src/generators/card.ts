@@ -11,12 +11,12 @@ import { formatCurrency, formatNumber, formatPercent } from '../utils/format.js'
  * Returns the raw font buffer or null if no suitable font is found.
  */
 async function loadSystemFont(): Promise<Buffer | null> {
+  // Only .ttf and .otf files — satori cannot parse .ttc or .dfont collections
   const candidates = [
     // macOS
-    '/System/Library/Fonts/Menlo.ttc',
-    '/System/Library/Fonts/Courier.dfont',
-    '/System/Library/Fonts/Monaco.dfont',
     '/System/Library/Fonts/SFMono-Regular.otf',
+    '/System/Library/Fonts/Supplemental/Courier New.ttf',
+    '/System/Library/Fonts/Supplemental/Menlo-Regular.ttf',
     '/Library/Fonts/Courier New.ttf',
     // Linux
     '/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf',
