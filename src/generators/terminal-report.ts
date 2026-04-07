@@ -8,6 +8,24 @@ import {
   formatPercent,
 } from '../utils/format.js';
 
+const MAX_LINE_WIDTH = 72;
+
+function wrapText(text: string, width: number): string {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let current = '';
+  for (const word of words) {
+    if (current.length + word.length + 1 > width) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = current ? `${current} ${word}` : word;
+    }
+  }
+  if (current) lines.push(current);
+  return lines.join('\n');
+}
+
 /**
  * Generate the full-color ASCII salary report for terminal display.
  */
@@ -115,12 +133,24 @@ export function generateTerminalReport(
   );
   sections.push('');
 
-  // Joke
-  sections.push(chalk.dim(`\uD83D\uDCAC ${joke}`));
+  // Joke (prefix takes ~3 chars, wrap continuation lines with matching indent)
+  const jokePrefix = '\uD83D\uDCAC ';
+  const jokeWrapped = wrapText(joke, MAX_LINE_WIDTH - 3);
+  const jokeLines = jokeWrapped.split('\n');
+  sections.push(chalk.dim(`${jokePrefix}${jokeLines[0]}`));
+  for (let i = 1; i < jokeLines.length; i++) {
+    sections.push(chalk.dim(jokeLines[i]!));
+  }
   sections.push('');
 
-  // Disclaimer
-  sections.push(chalk.dim(`\u2696\uFE0F  ${disclaimer}`));
+  // Disclaimer (prefix takes ~4 chars)
+  const disclaimerPrefix = '\u2696\uFE0F  ';
+  const disclaimerWrapped = wrapText(disclaimer, MAX_LINE_WIDTH - 4);
+  const disclaimerLines = disclaimerWrapped.split('\n');
+  sections.push(chalk.dim(`${disclaimerPrefix}${disclaimerLines[0]}`));
+  for (let i = 1; i < disclaimerLines.length; i++) {
+    sections.push(chalk.dim(disclaimerLines[i]!));
+  }
 
   const body = sections.join('\n');
 
