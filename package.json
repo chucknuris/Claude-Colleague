@@ -1,6 +1,6 @@
 {
   "name": "claude-colleague",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Calculate what Claude Code would earn as a human employee",
   "type": "module",
   "bin": {
@@ -28,7 +28,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src/",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run lint && npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",
@@ -57,9 +58,14 @@
     "salary",
     "cli",
     "developer-tools",
-    "ai"
+    "ai",
+    "standup",
+    "invoice",
+    "productivity"
   ],
+  "author": "chucknuris",
   "license": "MIT",
+  "homepage": "https://github.com/chucknuris/Claude-Colleague#readme",
   "repository": {
     "type": "git",
     "url": "https://github.com/chucknuris/Claude-Colleague.git"

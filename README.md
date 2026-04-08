@@ -13,18 +13,21 @@ npx claude-colleague
 ```
 
 ```
-claude-colleague                    # Full lifetime report
-claude-colleague --today            # Today only
-claude-colleague --week             # This week
-claude-colleague --month            # This month
-claude-colleague --card             # Generate shareable PNG card
-claude-colleague --invoice          # Generate PDF invoice
-claude-colleague --compare          # Detailed role comparison
-claude-colleague --standup          # Daily standup report
-claude-colleague --review           # Performance review
-claude-colleague --therapy          # Therapy session with Dr. Token
-claude-colleague install            # Install auto-run hook after each session
-claude-colleague uninstall          # Remove hook
+claude-colleague                        # Full lifetime salary report
+claude-colleague --today                # Today's sessions only
+claude-colleague --week                 # This week's sessions
+claude-colleague --month                # This month's sessions
+claude-colleague --card                 # Also generate a shareable PNG card
+claude-colleague --invoice              # Also generate a PDF invoice
+claude-colleague --compare              # Also show role equivalency breakdown
+claude-colleague --today --card         # Combine: today's report + PNG card
+claude-colleague standup                # Daily standup report
+claude-colleague review                 # Performance review (all time)
+claude-colleague review --month         # Performance review (this month)
+claude-colleague therapy                # Therapy session with Dr. Token
+claude-colleague therapy --week         # Therapy session (this week's data)
+claude-colleague install                # Install auto-run SessionEnd hook
+claude-colleague uninstall              # Remove SessionEnd hook
 ```
 
 ## Features
@@ -34,7 +37,7 @@ claude-colleague uninstall          # Remove hook
 Colorful ASCII salary slip showing:
 - Employee info (Claude model, funny random job title, your username as "employer")
 - Lifetime/period stats: sessions, messages, tool calls, longest shift
-- Compensation: equivalent human salary vs actual API cost, ROI percentage
+- Compensation: equivalent human salary vs actual API cost, ROI multiplier (e.g. 429x)
 - Role equivalency: "Claude did the work of X junior devs"
 - Labor compliance: overtime violations, weekend work, lunch breaks taken (0)
 - Closing joke and disclaimer
@@ -83,7 +86,7 @@ All humor content — job titles, jokes, disclaimers, standup narratives, review
 **Calculation pipeline:**
 1. **Discovers sessions** from both index files and standalone `.jsonl` transcripts
 2. **Parses lines written** from Write/Edit tool_use blocks in session transcripts
-3. **Converts to human-hours**: industry avg ~50 productive lines/day
+3. **Converts to human-hours**: ~150 complexity-weighted lines/day
 4. **Applies complexity multipliers**: test files 0.8x, config 0.5x, frontend 1.2x, infra 1.3x
 5. **Maps roles** based on tool usage patterns: heavy Write = Senior, heavy Bash = DevOps, Agent = Team Lead
 6. **Calculates API cost** from token usage with model-specific pricing
@@ -113,6 +116,10 @@ npm test                 # Run tests (126 tests)
 npm run lint             # Lint with ESLint
 npm run typecheck        # Type-check without emitting
 ```
+
+## Disclaimer
+
+*This is an unofficial, community-built tool and is not affiliated with, endorsed by, or sponsored by Anthropic.*
 
 ## License
 
