@@ -5,7 +5,7 @@ import type { SalaryReport } from '../types.js';
 import {
   formatCurrency,
   formatNumber,
-  formatPercent,
+  formatMultiplier,
 } from '../utils/format.js';
 
 const MAX_LINE_WIDTH = 72;
@@ -41,7 +41,7 @@ export function generateTerminalReport(
   sections.push('');
 
   // Employee info
-  const labelWidth = 14;
+  const labelWidth = 16;
   const label = (text: string) => chalk.gray(text.padEnd(labelWidth));
   sections.push(`${label('Employee:')}${chalk.white(report.employee.model)}`);
   sections.push(
@@ -108,7 +108,7 @@ export function generateTerminalReport(
     `${label('You Saved:')}${chalk.bold.green(formatCurrency(report.compensation.savings))}`,
   );
   sections.push(
-    `${label('ROI:')}${chalk.bold.green(formatPercent(report.compensation.roi))}`,
+    `${label('ROI:')}${chalk.bold.green(formatMultiplier(report.compensation.roi))}`,
   );
   sections.push('');
 

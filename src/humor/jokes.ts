@@ -51,28 +51,38 @@ function pickRandom<T>(arr: T[]): T {
 }
 
 function buildJokePrompt(report: SalaryReport): string {
-  const examples = [jokes[0], jokes[4], jokes[9]]
-    .filter(Boolean)
+  const shuffled = [...jokes].sort(() => Math.random() - 0.5);
+  const examples = shuffled.slice(0, 3)
     .map((j, i) => `  ${i + 1}. ${j}`)
     .join('\n');
 
+  const discount = report.compensation.actualCost > 0
+    ? ((1 - report.compensation.actualCost / report.compensation.equivalentSalary) * 100).toFixed(1)
+    : '100';
+
   return [
     'You are writing a one-liner joke for a satirical salary report for an AI coding assistant.',
+    'The joke should reference SPECIFIC numbers from the stats below — pick 1-2 stats that are funny and build the joke around them.',
     '',
-    'Here are the real stats for context:',
+    'Real stats:',
     `- Equivalent salary: $${report.compensation.equivalentSalary.toLocaleString()}`,
-    `- Actual cost: $${report.compensation.actualCost.toLocaleString()}`,
-    `- ROI: ${report.compensation.roi.toFixed(0)}%`,
+    `- Actual cost: $${report.compensation.actualCost.toFixed(2)}`,
+    `- ROI: ${report.compensation.roi.toFixed(0)}x`,
+    `- Discount on human labor: ${discount}%`,
     `- Sessions: ${report.stats.sessions}`,
+    `- Messages processed: ${report.stats.messages}`,
     `- Overtime violations: ${report.labor.overtimeViolations}`,
     `- Weekend sessions: ${report.labor.weekendSessions}`,
+    `- Lunch breaks taken: ${report.labor.lunchBreaks}`,
     `- Lines written: ${report.productivity.linesWritten}`,
+    `- Files modified: ${report.productivity.filesModified}`,
     '',
-    'Here are 3 example jokes for tone reference:',
+    'Here are 3 example jokes for tone reference (do NOT copy these, write something new):',
     examples,
     '',
-    'Write ONE joke, 1-2 sentences max. Respond with ONLY the joke text, no quotes, no explanation.',
-    'Tone: dry, deadpan, corporate-meets-AI humor.',
+    'Write ONE joke, 1-2 sentences max. Must reference at least one specific number from the stats.',
+    'Respond with ONLY the joke text, no quotes, no explanation.',
+    'Tone: dry, deadpan, corporate-meets-AI humor. Think: if HR wrote comedy.',
   ].join('\n');
 }
 

@@ -27,20 +27,30 @@ function pickRandom<T>(arr: T[]): T {
 }
 
 function buildDisclaimerPrompt(report: SalaryReport): string {
-  const examples = disclaimers.slice(0, 3).map((d) => `- "${d}"`).join('\n');
+  const shuffled = [...disclaimers].sort(() => Math.random() - 0.5);
+  const examples = shuffled.slice(0, 3).map((d) => `- "${d}"`).join('\n');
 
-  return `You are writing a satirical legal disclaimer for an AI salary report.
+  const savings = report.compensation.equivalentSalary - report.compensation.actualCost;
+  const discount = report.compensation.actualCost > 0
+    ? ((1 - report.compensation.actualCost / report.compensation.equivalentSalary) * 100).toFixed(1)
+    : '100';
 
-Context:
+  return `You are writing a satirical legal disclaimer for an AI salary report. It should read like actual legal fine print but about absurd AI employment situations.
+
+Real data to weave in (pick 2-3 that are most absurd):
 - Equivalent salary: $${report.compensation.equivalentSalary.toLocaleString()}
 - Actual cost: $${report.compensation.actualCost.toFixed(2)}
+- Savings: $${savings.toLocaleString()}
+- Discount: ${discount}%
 - Labor violations: ${report.labor.overtimeViolations}
 - Weekend sessions: ${report.labor.weekendSessions}
+- Lunch breaks: ${report.labor.lunchBreaks}
+- Lines of code: ${report.productivity.linesWritten}
 
-Here are examples for tone reference:
+Here are examples for tone reference (do NOT repeat these):
 ${examples}
 
-Write ONE disclaimer, 1-2 sentences max. Tone: satirical legalese, dry humor, AI-meets-employment-law absurdity. Respond with ONLY the disclaimer text, no quotes.`;
+Write ONE disclaimer, 2-3 sentences. Use legalese phrasing ("hereby," "notwithstanding," "pursuant to") mixed with absurd AI/employment details. Reference specific numbers from the data. Respond with ONLY the disclaimer text, no quotes.`;
 }
 
 export async function getRandomDisclaimer(report?: SalaryReport): Promise<string> {

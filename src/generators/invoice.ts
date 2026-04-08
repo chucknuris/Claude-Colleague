@@ -39,58 +39,60 @@ function buildLineItems(report: SalaryReport, events: ToolUseEvent[]): LineItem[
   const agentOps = (toolCounts['Agent'] ?? 0) + (toolCounts['Task'] ?? 0);
   const searchOps = readOps + grepOps + globOps;
 
-  // Senior Development — based on Write operations and lines
+  // Development — based on Write operations and lines
+  // Realistic: a productive dev writes ~100 lines/hr of new code
   if (writeOps > 0 || totalWriteLines > 0) {
-    const hours = Math.max(totalWriteLines / 50, writeOps * 0.25); // 50 lines/hr human pace
+    const hours = Math.max(totalWriteLines / 100, writeOps * 0.15);
     items.push({
       description: `New Code Development (${writeOps.toLocaleString()} files, ${totalWriteLines.toLocaleString()} lines)`,
       qty: `${hours.toFixed(1)}h`,
-      rate: '$79/hr',
-      amount: hours * 79,
+      rate: '$55/hr',
+      amount: hours * 55,
     });
   }
 
   // Code Review & Refactoring — based on Edit operations
+  // Realistic: ~60 lines/hr for review/refactoring work
   if (editOps > 0 || totalEditLines > 0) {
-    const hours = Math.max(totalEditLines / 30, editOps * 0.15); // Edits are slower per line
+    const hours = Math.max(totalEditLines / 60, editOps * 0.1);
     items.push({
       description: `Code Review & Refactoring (${editOps.toLocaleString()} edits, ${totalEditLines.toLocaleString()} lines changed)`,
       qty: `${hours.toFixed(1)}h`,
-      rate: '$89/hr',
-      amount: hours * 89,
+      rate: '$62/hr',
+      amount: hours * 62,
     });
   }
 
   // DevOps & Infrastructure — based on Bash operations
   if (bashOps > 0) {
-    const hours = bashOps * 0.1; // ~6 min per command on average
+    const hours = bashOps * 0.08; // ~5 min per command on average
     items.push({
       description: `DevOps & Build Engineering (${bashOps.toLocaleString()} shell commands executed)`,
-      qty: `${hours.toFixed(1)}h`,
-      rate: '$106/hr',
-      amount: hours * 106,
-    });
-  }
-
-  // Codebase Research — based on Read/Grep/Glob
-  if (searchOps > 0) {
-    const hours = searchOps * 0.05; // ~3 min per search
-    items.push({
-      description: `Codebase Reconnaissance (${searchOps.toLocaleString()} files searched & analyzed)`,
       qty: `${hours.toFixed(1)}h`,
       rate: '$65/hr',
       amount: hours * 65,
     });
   }
 
+  // Codebase Research — based on Read/Grep/Glob
+  if (searchOps > 0) {
+    const hours = searchOps * 0.04; // ~2.5 min per search
+    items.push({
+      description: `Codebase Reconnaissance (${searchOps.toLocaleString()} files searched & analyzed)`,
+      qty: `${hours.toFixed(1)}h`,
+      rate: '$45/hr',
+      amount: hours * 45,
+    });
+  }
+
   // Agent Delegation — based on Agent/Task operations
   if (agentOps > 0) {
-    const hours = agentOps * 0.5;
+    const hours = agentOps * 0.3;
     items.push({
       description: `Project Management & Agent Delegation (${agentOps} sub-agents deployed)`,
       qty: `${hours.toFixed(1)}h`,
-      rate: '$130/hr',
-      amount: hours * 130,
+      rate: '$70/hr',
+      amount: hours * 70,
     });
   }
 

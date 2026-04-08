@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatCurrency, formatNumber, formatDuration, formatPercent } from '../../src/utils/format.js';
+import { formatCurrency, formatNumber, formatDuration, formatPercent, formatMultiplier } from '../../src/utils/format.js';
 
 describe('formatCurrency', () => {
   it('formats a normal value', () => {
@@ -92,5 +92,23 @@ describe('formatPercent', () => {
 
   it('formats negative percentages', () => {
     expect(formatPercent(-50)).toBe('-50%');
+  });
+});
+
+describe('formatMultiplier', () => {
+  it('formats a normal multiplier', () => {
+    expect(formatMultiplier(429)).toBe('429x');
+  });
+
+  it('formats large multipliers with commas', () => {
+    expect(formatMultiplier(10940)).toBe('10,940x');
+  });
+
+  it('formats zero', () => {
+    expect(formatMultiplier(0)).toBe('0x');
+  });
+
+  it('formats small multipliers', () => {
+    expect(formatMultiplier(1.7)).toBe('2x');
   });
 });

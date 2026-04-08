@@ -114,10 +114,10 @@ describe('calculateProductivity', () => {
   });
 
   it('calculates human hours equivalent', () => {
-    // 400 lines / 50 lines-per-day * 8 hours-per-day = 64 hours
+    // 400 lines * 1.0 complexity / 150 lines-per-day * 8 hours-per-day ≈ 21.3 hours
     const events = [makeEvent({ linesWritten: 400, linesChanged: 0 })];
     const result = calculateProductivity(events);
-    expect(result.humanHoursEquivalent).toBeCloseTo(64, 0);
+    expect(result.humanHoursEquivalent).toBeCloseTo(21.3, 0);
   });
 
   it('tracks file breakdown correctly', () => {

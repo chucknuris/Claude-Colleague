@@ -3,7 +3,7 @@ import type { SalaryReport } from '../types.js';
 import {
   formatCurrency,
   formatNumber,
-  formatPercent,
+  formatMultiplier,
 } from '../utils/format.js';
 
 /**
@@ -31,7 +31,7 @@ export function generatePostSessionReport(
     chalk.dim(' | You paid: ') +
     chalk.white(formatCurrency(report.compensation.actualCost)) +
     chalk.dim(' | ROI: ') +
-    chalk.green(formatPercent(report.compensation.roi));
+    chalk.green(formatMultiplier(report.compensation.roi));
 
   const title = chalk.dim('   Today\'s title: ') +
     chalk.italic.yellow(`"${report.employee.title}"`);

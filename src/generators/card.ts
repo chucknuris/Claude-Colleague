@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { CARDS_DIR, ensureOutputDirs } from '../utils/paths.js';
-import { formatCurrency, formatNumber, formatPercent } from '../utils/format.js';
+import { formatCurrency, formatNumber, formatMultiplier } from '../utils/format.js';
 
 /**
  * Attempt to load a system monospace font for satori rendering.
@@ -58,7 +58,7 @@ function buildCardMarkup(report: SalaryReport): Record<string, unknown> {
     { label: 'EQUIV. SALARY', value: formatCurrency(compensation.equivalentSalary) },
     { label: 'ACTUAL COST', value: formatCurrency(compensation.actualCost) },
     { label: 'SAVINGS', value: formatCurrency(compensation.savings) },
-    { label: 'ROI', value: formatPercent(compensation.roi) },
+    { label: 'ROI', value: formatMultiplier(compensation.roi) },
   ];
 
   return {

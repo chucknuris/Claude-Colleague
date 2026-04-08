@@ -40,3 +40,12 @@ export function formatDuration(ms: number): string {
 export function formatPercent(n: number): string {
   return Math.round(n).toLocaleString('en-US') + '%';
 }
+
+/**
+ * Format a number as a multiplier string.
+ * @example formatMultiplier(429) => "429x"
+ * @example formatMultiplier(10940) => "10,940x"
+ */
+export function formatMultiplier(n: number): string {
+  return Math.round(n).toLocaleString('en-US') + 'x';
+}

@@ -47,12 +47,12 @@ function filterSessionsByDate(sessions: SessionEntry[], start: Date, end: Date):
 /**
  * Core salary engine that orchestrates all calculators into a unified SalaryReport.
  */
-export function calculateSalary(
+export async function calculateSalary(
   stats: StatsCache,
   sessions: SessionEntry[],
   events: ToolUseEvent[],
   dateFilter: DateFilter,
-): SalaryReport {
+): Promise<SalaryReport> {
   const { start, end } = getDateRange(dateFilter);
   const label = DATE_FILTER_LABELS[dateFilter];
 
@@ -98,7 +98,7 @@ export function calculateSalary(
   const productivity = calculateProductivity(events);
 
   // Role comparison
-  const roleComparison = calculateRoleComparison(productivity.humanHoursEquivalent, events);
+  const roleComparison = await calculateRoleComparison(productivity.humanHoursEquivalent, events);
 
   // Equivalent salary
   const hourlyRate = getHourlyRateForRole(roleComparison.dominantRole);

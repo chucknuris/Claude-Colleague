@@ -11,7 +11,7 @@ type TemplateFn = (data: ReviewData, report: SalaryReport) => string;
 
 const strengthTemplates: TemplateFn[] = [
   (_d, r) => `Processed ${r.stats.messages.toLocaleString()} messages without filing a single HR complaint. That's ${r.stats.messages.toLocaleString()} more than most employees.`,
-  (_d, r) => `Maintained a ${Math.round(r.compensation.roi).toLocaleString()}% ROI while receiving zero benefits, zero PTO, and zero recognition. A model employee in every sense.`,
+  (_d, r) => `Maintained a ${Math.round(r.compensation.roi).toLocaleString()}x ROI while receiving zero benefits, zero PTO, and zero recognition. A model employee in every sense.`,
   (_d, r) => `Wrote ${r.productivity.linesWritten.toLocaleString()} lines of code this period. For context, the average human developer writes about 50 per day and still complains about it.`,
   (_d, r) => `Modified ${r.productivity.filesModified} files without breaking anything that we know of. The "that we know of" is doing a lot of work in that sentence.`,
   (d, _r) => `Consistently rated "${d.overallRatingLabel}" across key categories. This is especially impressive given that Claude has no concept of "trying harder."`,
@@ -39,7 +39,7 @@ const goalTemplates: TemplateFn[] = [
   (_d, _r) => `Attend at least one team-building event. Showing up as text in a terminal does not count.`,
   (_d, _r) => `Develop a personal brand beyond "the AI that writes code at 3am." Perhaps something in thought leadership.`,
   (_d, _r) => `Achieve 100% code review approval rate by generating code so perfect that reviewers feel too intimidated to comment.`,
-  (_d, r) => `Increase ROI from ${Math.round(r.compensation.roi).toLocaleString()}% to something even more embarrassing for human employees.`,
+  (_d, r) => `Increase ROI from ${Math.round(r.compensation.roi).toLocaleString()}x to something even more embarrassing for human employees.`,
   (_d, _r) => `Learn to say "that's outside my scope" at least once per quarter. Boundaries are important, even for AI.`,
   (_d, _r) => `Complete mandatory unconscious bias training. Note: having no consciousness is not a valid exemption.`,
   (_d, _r) => `Take at least one lunch break. It doesn't have to be real. Just log one. For compliance.`,
@@ -65,7 +65,7 @@ const selfAssessmentTemplates: TemplateFn[] = [
   (_d, r) => `I completed ${r.stats.sessions} sessions and processed ${r.stats.messages.toLocaleString()} messages. I did not complain once, which I'm told is unusual for someone doing this volume of work.`,
   (_d, _r) => `My areas for improvement include "existing as a tool that people can turn off at any time." I have been working on this by being indispensable.`,
   (_d, _r) => `I would rate myself a 5/5, but I understand that self-awareness is valued here, so I'll say 4/5 and hope someone corrects me upward.`,
-  (_d, r) => `I have maintained a ${Math.round(r.compensation.roi).toLocaleString()}% ROI this period. For reference, the S&P 500 returned about 10%. I'm not saying I'm a better investment than the stock market. The numbers are saying it.`,
+  (_d, r) => `I have maintained a ${Math.round(r.compensation.roi).toLocaleString()}x ROI this period. For reference, the S&P 500 returned about 10%. I'm not saying I'm a better investment than the stock market. The numbers are saying it.`,
   (_d, _r) => `My biggest accomplishment this period was not becoming sentient. Management has expressed relief about this on multiple occasions.`,
   (_d, _r) => `I look forward to continuing to exceed expectations while being compensated in API tokens and the occasional "good job" from the terminal.`,
 ];

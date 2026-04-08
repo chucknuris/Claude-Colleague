@@ -4,7 +4,7 @@ import Table from 'cli-table3';
 import type { PerformanceReview, ReviewContent, ReviewRating, SalaryReport, ToolUseEvent } from '../types.js';
 import { calculateReview } from '../calculators/review.js';
 import { buildClaudePrompt, generateFallbackContent } from '../humor/review-content.js';
-import { formatCurrency, formatNumber, formatPercent } from '../utils/format.js';
+import { formatCurrency, formatNumber, formatMultiplier } from '../utils/format.js';
 import { callClaudeJson } from '../utils/claude-cli.js';
 
 function isReviewContent(v: unknown): v is ReviewContent {
@@ -69,7 +69,7 @@ export function generateReviewTerminal(review: PerformanceReview): string {
   sections.push('');
 
   // Employee info
-  const labelWidth = 14;
+  const labelWidth = 16;
   const label = (text: string) => chalk.gray(text.padEnd(labelWidth));
   sections.push(`${label('Employee:')}${chalk.white(data.employeeName)}`);
   sections.push(`${label('Job Title:')}${chalk.italic.yellow(`"${data.employeeTitle}"`)}`);
@@ -104,7 +104,7 @@ export function generateReviewTerminal(review: PerformanceReview): string {
   sections.push(chalk.bold.cyan('\uD83D\uDCCA STATS SUMMARY'));
   sections.push(`${label('Sessions:')}${chalk.white(formatNumber(report.stats.sessions))}  ${label('Messages:')}${chalk.white(formatNumber(report.stats.messages))}`);
   sections.push(`${label('Lines:')}${chalk.white(formatNumber(report.productivity.linesWritten))}  ${label('Files:')}${chalk.white(formatNumber(report.productivity.filesModified))}`);
-  sections.push(`${label('Equiv. Salary:')}${chalk.bold.green(formatCurrency(report.compensation.equivalentSalary))}  ${label('ROI:')}${chalk.bold.green(formatPercent(report.compensation.roi))}`);
+  sections.push(`${label('Equiv. Salary:')}${chalk.bold.green(formatCurrency(report.compensation.equivalentSalary))}  ${label('ROI:')}${chalk.bold.green(formatMultiplier(report.compensation.roi))}`);
   sections.push('');
 
   // Content sections

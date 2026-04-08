@@ -8,7 +8,9 @@ export interface ProductivityResult {
   fileBreakdown: Record<string, number>;
 }
 
-const LINES_PER_DAY = 50;
+// Realistic developer productivity: a solid junior-to-mid dev writes ~125-150
+// meaningful lines of code per day (industry studies, after reviews/meetings/etc.)
+const COMPLEXITY_WEIGHTED_LINES_PER_DAY = 150;
 const HOURS_PER_DAY = 8;
 
 function getComplexityMultiplier(filePath: string, extension: string): number {
@@ -68,7 +70,10 @@ export function calculateProductivity(events: ToolUseEvent[]): ProductivityResul
     }
   }
 
-  const humanHoursEquivalent = totalLines > 0 ? (totalLines / LINES_PER_DAY) * HOURS_PER_DAY : 0;
+  // Use complexity-weighted lines so config/JSON count less, infra/frontend count more
+  const humanHoursEquivalent = complexityScore > 0
+    ? (complexityScore / COMPLEXITY_WEIGHTED_LINES_PER_DAY) * HOURS_PER_DAY
+    : 0;
 
   return {
     linesWritten: totalLines,
