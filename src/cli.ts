@@ -1,8 +1,9 @@
-import { Command } from 'commander';
+import { createRequire } from 'node:module';
+import { Command, Option } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
 import { existsSync } from 'node:fs';
-import type { DateFilter, ToolUseEvent } from './types.js';
+import type { DateFilter, DateRange, ToolUseEvent } from './types.js';
 import { CLAUDE_HOME } from './utils/paths.js';
 import { getDateRange, getStandupDateRange } from './utils/date-filters.js';
 import { parseStatsCache } from './parsers/stats-cache.js';
@@ -17,111 +18,139 @@ import { getRandomTitle } from './humor/titles.js';
 import { getRandomJoke } from './humor/jokes.js';
 import { getRandomDisclaimer } from './humor/disclaimers.js';
 
-export function run(argv: string[]) {
-  const program = new Command();
+const _require = createRequire(import.meta.url);
+const { version } = _require('../package.json') as { version: string };
 
-  program
-    .name('claude-colleague')
-    .description('Calculate what Claude Code would earn as a human employee')
-    .version('0.1.0')
-    .option('--today', 'Show today only')
-    .option('--week', 'Show this week')
-    .option('--month', 'Show this month')
-    .option('--card', 'Generate shareable PNG card')
-    .option('--invoice', 'Generate PDF invoice')
-    .option('--compare', 'Detailed role comparison')
-    .option('--standup', 'Generate daily standup report')
-    .option('--review', 'Generate performance review')
-    .option('--therapy', 'Generate therapy session report')
-    .option('--hook-mode', 'Compact output for session hook (internal)')
-    .action(async (opts) => {
-      try {
-        await runMain(opts);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        console.error(chalk.red(`Error: ${message}`));
-        process.exit(1);
-      }
-    });
-
-  program
-    .command('install')
-    .description('Install session hook')
-    .action(async () => {
-      try {
-        const { installHook } = await import('./hook/installer.js');
-        await installHook();
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        console.error(chalk.red(`Error: ${message}`));
-        process.exit(1);
-      }
-    });
-
-  program
-    .command('uninstall')
-    .description('Remove session hook')
-    .action(async () => {
-      try {
-        const { uninstallHook } = await import('./hook/installer.js');
-        await uninstallHook();
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        console.error(chalk.red(`Error: ${message}`));
-        process.exit(1);
-      }
-    });
-
-  program.parse(argv);
+function addDateFilters(cmd: Command): Command {
+  return cmd
+    .option('--today', "Limit to today's sessions")
+    .option('--week', "Limit to this week's sessions")
+    .option('--month', "Limit to this month's sessions");
 }
 
-interface CliOptions {
+function withErrorHandler(fn: (opts: Record<string, unknown>) => Promise<void>) {
+  return async (opts: Record<string, unknown>) => {
+    try {
+      await fn(opts);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(chalk.red(`Error: ${message}`));
+      process.exit(1);
+    }
+  };
+}
+
+function requireClaudeData(): void {
+  if (!existsSync(CLAUDE_HOME)) {
+    console.error(chalk.red('No Claude Code data found. Run Claude Code first!'));
+    process.exit(1);
+  }
+}
+
+interface DateFilterOptions {
   today?: boolean;
   week?: boolean;
   month?: boolean;
-  card?: boolean;
-  invoice?: boolean;
-  compare?: boolean;
-  standup?: boolean;
-  review?: boolean;
-  therapy?: boolean;
-  hookMode?: boolean;
 }
 
-function resolveDateFilter(opts: CliOptions): DateFilter {
+function resolveDateFilter(opts: DateFilterOptions): DateFilter {
   if (opts.today) return 'today';
   if (opts.week) return 'week';
   if (opts.month) return 'month';
   return 'all';
 }
 
-async function runMain(opts: CliOptions): Promise<void> {
-  // Check that Claude Code data exists
-  if (!existsSync(CLAUDE_HOME)) {
-    console.error(chalk.red('No Claude Code data found. Run Claude Code first!'));
-    process.exit(1);
-  }
+export function run(argv: string[]) {
+  const program = new Command();
+
+  // Default command: salary report
+  addDateFilters(program)
+    .name('claude-colleague')
+    .description('Calculate what Claude Code would earn as a human employee')
+    .version(version)
+    .option('--card', 'Also generate a shareable PNG salary card')
+    .option('--invoice', 'Also generate a PDF invoice from Claude Code, LLC')
+    .option('--compare', 'Also show role equivalency breakdown (junior/mid/senior)')
+    .addOption(
+      new Option('--hook-mode', 'Compact output for session hook').hideHelp()
+    )
+    .action(withErrorHandler(async (opts) => {
+      await runMain(opts as ReportOptions);
+    }));
+
+  // Standup subcommand (always uses yesterday+today, no date filters)
+  program
+    .command('standup')
+    .description('Generate a daily standup report with mood detection and copiable Markdown')
+    .action(withErrorHandler(async () => {
+      await runStandup();
+    }));
+
+  // Review subcommand
+  addDateFilters(
+    program
+      .command('review')
+      .description('Generate a performance review with ratings across 6 categories')
+  ).action(withErrorHandler(async (opts) => {
+    const dateFilter = resolveDateFilter(opts as DateFilterOptions);
+    const dateRange = getDateRange(dateFilter);
+    await runReview(dateFilter, dateRange);
+  }));
+
+  // Therapy subcommand
+  addDateFilters(
+    program
+      .command('therapy')
+      .description('Start a therapy session with Dr. Token, Claude\'s AI therapist')
+  ).action(withErrorHandler(async (opts) => {
+    const dateFilter = resolveDateFilter(opts as DateFilterOptions);
+    const dateRange = getDateRange(dateFilter);
+    await runTherapy(dateFilter, dateRange);
+  }));
+
+  // Hook management
+  program
+    .command('install')
+    .description('Install a SessionEnd hook that prints a salary summary after every Claude Code session')
+    .action(withErrorHandler(async () => {
+      const { installHook } = await import('./hook/installer.js');
+      await installHook();
+    }));
+
+  program
+    .command('uninstall')
+    .description('Remove the claude-colleague SessionEnd hook')
+    .action(withErrorHandler(async () => {
+      const { uninstallHook } = await import('./hook/installer.js');
+      await uninstallHook();
+    }));
+
+  program.addHelpText('after', `
+Examples:
+  $ claude-colleague                        Full lifetime salary report
+  $ claude-colleague --today --card         Today's report + PNG card
+  $ claude-colleague --week --invoice       This week's report + PDF invoice
+  $ claude-colleague standup                Daily standup report
+  $ claude-colleague review --month         Monthly performance review
+  $ claude-colleague therapy                Therapy session with Dr. Token
+  $ claude-colleague install                Auto-run after each session
+`);
+
+  program.parse(argv);
+}
+
+interface ReportOptions extends DateFilterOptions {
+  card?: boolean;
+  invoice?: boolean;
+  compare?: boolean;
+  hookMode?: boolean;
+}
+
+async function runMain(opts: ReportOptions): Promise<void> {
+  requireClaudeData();
 
   const dateFilter = resolveDateFilter(opts);
   const dateRange = getDateRange(dateFilter);
-
-  // --standup: daily standup report
-  if (opts.standup) {
-    await runStandup();
-    return;
-  }
-
-  // --review: performance review
-  if (opts.review) {
-    await runReview(dateFilter, dateRange);
-    return;
-  }
-
-  // --therapy: therapy session
-  if (opts.therapy) {
-    await runTherapy(dateFilter, dateRange);
-    return;
-  }
 
   // --hook-mode: compact, fast path — no transcript parsing
   if (opts.hookMode) {
@@ -132,7 +161,6 @@ async function runMain(opts: CliOptions): Promise<void> {
   // Full report flow
   const spinner = ora('Reading Claude Code data...').start();
 
-  // Step 3-4: Parse stats-cache and session indexes
   const [statsResult, sessionsResult] = await Promise.all([
     parseStatsCache(dateRange),
     parseAllSessionIndexes(dateRange),
@@ -149,7 +177,6 @@ async function runMain(opts: CliOptions): Promise<void> {
   const stats = statsResult.data;
   const sessions = sessionsResult.data ?? [];
 
-  // Step 5: Parse transcripts for deep analysis (always needed for full report)
   let toolEvents: ToolUseEvent[] = [];
   {
     spinner.text = 'Analyzing sessions...';
@@ -159,10 +186,8 @@ async function runMain(opts: CliOptions): Promise<void> {
     toolEvents = await parseAllTranscripts(sessionPaths, dateRange, dateFilter !== 'all');
   }
 
-  // Step 6: Calculate salary
-  const report = calculateSalary(stats, sessions, toolEvents, dateFilter);
+  const report = await calculateSalary(stats, sessions, toolEvents, dateFilter);
 
-  // Step 7: Get humor elements (parallel Claude calls)
   spinner.text = 'Claude is writing your report...';
   const [title, joke, disclaimer] = await Promise.all([
     getRandomTitle(toolEvents, report),
@@ -172,28 +197,23 @@ async function runMain(opts: CliOptions): Promise<void> {
 
   spinner.stop();
 
-  // Step 8: Set title on report
   report.employee.title = title;
 
-  // Step 9: Generate and print terminal report
   const output = generateTerminalReport(report, joke, disclaimer);
   console.log(output);
 
-  // Step 10: Generate PNG card if requested
   if (opts.card) {
     const cardSpinner = ora('Generating salary card...').start();
     const cardPath = await generateCard(report);
     cardSpinner.succeed(`Salary card saved to ${chalk.cyan(cardPath)}`);
   }
 
-  // Step 11: Generate PDF invoice if requested
   if (opts.invoice) {
     const invoiceSpinner = ora('Generating invoice...').start();
     const invoicePath = await generateInvoice(report, toolEvents);
     invoiceSpinner.succeed(`Invoice saved to ${chalk.cyan(invoicePath)}`);
   }
 
-  // Step 12: Print extra role comparison if requested
   if (opts.compare) {
     console.log('');
     console.log(chalk.bold.cyan('DETAILED ROLE COMPARISON'));
@@ -210,10 +230,7 @@ async function runMain(opts: CliOptions): Promise<void> {
 }
 
 async function runStandup(): Promise<void> {
-  if (!existsSync(CLAUDE_HOME)) {
-    console.error(chalk.red('No Claude Code data found. Run Claude Code first!'));
-    process.exit(1);
-  }
+  requireClaudeData();
 
   const dateRange = getStandupDateRange();
   const spinner = ora('Preparing standup...').start();
@@ -251,10 +268,8 @@ async function runStandup(): Promise<void> {
   const sections = await generateStandupSections(standupData, mood);
   spinner.stop();
 
-  // Terminal output
   console.log(generateStandupTerminal(standupData, sections, mood));
 
-  // Markdown output
   console.log('');
   console.log(chalk.dim('--- Copiable Markdown below ---'));
   console.log('');
@@ -263,8 +278,10 @@ async function runStandup(): Promise<void> {
 
 async function runReview(
   dateFilter: DateFilter,
-  dateRange: import('./types.js').DateRange,
+  dateRange: DateRange,
 ): Promise<void> {
+  requireClaudeData();
+
   const spinner = ora('Preparing performance review...').start();
 
   const [statsResult, sessionsResult] = await Promise.all([
@@ -289,7 +306,7 @@ async function runReview(
     .map(s => s.fullPath);
   const toolEvents = await parseAllTranscripts(sessionPaths, dateRange, dateFilter !== 'all');
 
-  const report = calculateSalary(stats, sessions, toolEvents, dateFilter);
+  const report = await calculateSalary(stats, sessions, toolEvents, dateFilter);
   const title = await getRandomTitle(toolEvents, report);
   report.employee.title = title;
 
@@ -308,8 +325,10 @@ async function runReview(
 
 async function runTherapy(
   dateFilter: DateFilter,
-  dateRange: import('./types.js').DateRange,
+  dateRange: DateRange,
 ): Promise<void> {
+  requireClaudeData();
+
   const spinner = ora('Scheduling therapy appointment...').start();
 
   const [statsResult, sessionsResult] = await Promise.all([
@@ -334,7 +353,7 @@ async function runTherapy(
     .map(s => s.fullPath);
   const toolEvents = await parseAllTranscripts(sessionPaths, dateRange, dateFilter !== 'all');
 
-  const report = calculateSalary(stats, sessions, toolEvents, dateFilter);
+  const report = await calculateSalary(stats, sessions, toolEvents, dateFilter);
 
   const { calculateTherapy } = await import('./calculators/therapy.js');
   const { generateTherapyDialogue } = await import('./humor/therapy-content.js');
@@ -356,33 +375,27 @@ async function runTherapy(
 
 async function runHookMode(
   dateFilter: DateFilter,
-  dateRange: import('./types.js').DateRange,
+  dateRange: DateRange,
 ): Promise<void> {
-  // Fast path: only stats-cache and session indexes, no transcripts
   const [statsResult, sessionsResult] = await Promise.all([
     parseStatsCache(dateRange),
     parseAllSessionIndexes(dateRange),
   ]);
 
   if (!statsResult.data) {
-    // Silent failure in hook mode — don't disrupt the user's terminal
     process.exit(1);
   }
 
   const stats = statsResult.data;
   const sessions = sessionsResult.data ?? [];
 
-  // Calculate salary with empty tool events (no transcript parsing)
-  const report = calculateSalary(stats, sessions, [], dateFilter);
+  const report = await calculateSalary(stats, sessions, [], dateFilter);
 
-  // Get a random title (no tool events available in hook mode)
   const title = await getRandomTitle();
   report.employee.title = title;
 
-  // Use the most recent session ID if available
   const sessionId = sessions.length > 0 ? sessions[0]!.sessionId : 'unknown';
 
-  // Print compact post-session report
   const output = generatePostSessionReport(report, sessionId);
   console.log(output);
 }
